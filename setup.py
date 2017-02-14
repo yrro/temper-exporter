@@ -29,6 +29,7 @@ setup(
     packages = ['temper_exporter'],
     install_requires = [
         'prometheus_client',
+        'pyudev',
         'setuptools'
     ],
     entry_points = {

@@ -75,9 +75,9 @@ optional arguments:
 Development
 -----------
 
-I'm trying to keep things simple and rely only on the Python standard library
-and the [prometheus_client](https://github.com/prometheus/client_python)
-module.
+I'm trying to keep things simple and rely only on the Python standard library,
+[pyudev](http://pypi.python.org/pypi/pyudev) and the
+[prometheus_client](https://github.com/prometheus/client_python) module.
 
 To run `exporter` from source:
 
