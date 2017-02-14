@@ -2,5 +2,5 @@
 changelog
 debhelper-build-stamp
 files
-prometheus-igd-exporter.substvars
-prometheus-igd-exporter/
+prometheus-temper-exporter.substvars
+prometheus-temper-exporter/

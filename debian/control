@@ -1,4 +1,4 @@
-Source: igd-exporter
+Source: temper-exporter
 Maintainer: Sam Morris <sam@robots.org.uk>
 Section: net
 Priority: optional
@@ -10,15 +10,15 @@ Build-Depends:
  python3-prometheus-client,
  python3-setuptools,
 Standards-Version: 3.9.7
-Homepage: https://github.com/yrro/igd-exporter
+Homepage: https://github.com/yrro/temper-exporter
 X-Python3-Version: >= 3.4
 
-Package: prometheus-igd-exporter
+Package: prometheus-temper-exporter
 Architecture: all
 Depends:
  adduser,
  ${python3:Depends},
  ${misc:Depends},
-Description: UPnP Internet Gateway Device metrics exporter for Prometheus
- Allows probing of UPnP Internet Gateway Devices (i.e., consumer Internet
- routers) by the Prometheus monitoring/time series database system.
+Description: PCsensor TEMPer sensor exporter for Prometheus
+ Exports sensor readings for the PRometheus monitoring/time series database
+ system.

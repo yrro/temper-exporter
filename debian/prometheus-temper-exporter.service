@@ -1,11 +1,11 @@
 [Unit]
-Description=Prometheus exporter UPnP Internet Gateway Device metrics
-Documentation=https://github.com/yrro/igd-exporter file:///usr/share/doc/prometheus-igd-exporter/README.md
+Description=Prometheus exporter for PCSensor TEMPer sensor devices
+Documentation=https://github.com/yrro/temper-exporter file:///usr/share/doc/prometheus-temper-exporter/README.md
 
 [Service]
 Restart=always
-User=_igd-exporter
-ExecStart=/usr/bin/igd-exporter
+User=_temper-exporter
+ExecStart=/usr/bin/temper-exporter
 Environment=PYTHONUNBUFFERED=1
 NoNewPrivileges=true
 ProtectControlGroups=true
