@@ -9,6 +9,14 @@ cmd_get_version     = b'\x01\x86\xff\x01\x00\x00\x00\x00'
 cmd_stop            = b'\x01\x88\x55\x00\x00\x00\x00\x00' # kills the temperhum if sent - so why bother anyway
 cmd_read_sensor_id  = b'\x01\x89\x55\x00\x00\x00\x00\x00' # temper2 only
 
+class matcher(type):
+    matchers = []
+
+    def __new__(meta, name, bases, class_dict):
+        cls = super().__new__(meta, name, bases, class_dict)
+        meta.matchers.append(cls)
+        return cls
+
 class usb_temper:
     @classmethod
     def match_interface(cls, udev_device, fn):
@@ -45,7 +53,7 @@ class usb_temper:
         hid = self.__udev_device.find_parent(subsystem=b'hid')
         return hid.properties.get('HID_PHYS')
 
-class temper(usb_temper):
+class temper(usb_temper, metaclass=matcher):
     @classmethod
     def match(cls, udev_device):
         if cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v1130p660Cd0150dc00dsc00dp00ic03isc00ip00in01'):
@@ -55,7 +63,7 @@ class temper(usb_temper):
         self.write(b'\x54\x00\x00\x00\x00\x00\x00\x00')
         return self.read(8)
 
-class temper2(usb_temper):
+class temper2(usb_temper, metaclass=matcher):
     @classmethod
     def match(cls, udev_device):
         if cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7401d0001dc00dsc00dp00ic03isc01ip02in01'):
@@ -89,7 +97,7 @@ class temper2(usb_temper):
 
         return tempi_c, tempe_c
 
-class temper2hum(usb_temper):
+class temper2hum(usb_temper, metaclass=matcher):
     @classmethod
     def match(cls, udev_device):
         if cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7402d0001dc00dsc00dp00ic03isc01ip02in01'):
@@ -116,16 +124,10 @@ class temper2hum(usb_temper):
         rh_pc = min(max(rh_pc, 0.0), 100.0)
         return temp_c, rh_pc
 
-matchers = [
-    temper,
-    temper2,
-    temper2hum,
-]
-
 if __name__ == '__main__':
     ctx = pyudev.Context()
     for hr in ctx.list_devices(subsystem=b'hidraw'):
-        for m in matchers:
+        for m in matcher.matchers:
             with contextlib.ExitStack() as e:
                 d = m.match(hr)
                 if d is None:
