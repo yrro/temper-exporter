@@ -28,6 +28,12 @@ class usb_temper:
         self.__device = open(udev_device.device_node, 'r+b', buffering=0)
         self.version = self.read_version()
 
+    def __del__(self):
+        try:
+            self.close()
+        except:
+            pass
+
     def __repr__(self):
         return '<{}({!r})>'.format(self.__class__.__name__, self.__udev_device.sys_path)
 
