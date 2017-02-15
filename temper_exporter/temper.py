@@ -53,6 +53,13 @@ class usb_temper:
         version = self.read(8) + self.read(8)
         return version.decode('ascii', errors='replace')
 
+    def read_sensor(self):
+        '''
+        Returns an iterator yielding a tuple of (type, name, value), where type
+        is 'temp' or 'humid' and name may be an empty string.
+        '''
+        raise IOError('Not implemented')
+
     def close(self):
         self.__device.close()
 
@@ -71,7 +78,8 @@ class temper(usb_temper, metaclass=matcher):
 
     def read_sensor(self):
         self.write(b'\x54\x00\x00\x00\x00\x00\x00\x00')
-        return self.read(8)
+        print(self.read(8))
+        super().read_sensor()
 
 class temper2(usb_temper, metaclass=matcher):
     @classmethod
@@ -105,7 +113,8 @@ class temper2(usb_temper, metaclass=matcher):
         tempi_c = tempi * 125 / 32000
         tempe_c = tempe * 125 / 32000
 
-        return tempi_c, tempe_c
+        yield 'temp', 'internal', tempi_c
+        yield 'temp', 'external', tempe_c
 
 class temper2hum(usb_temper, metaclass=matcher):
     @classmethod
@@ -132,7 +141,9 @@ class temper2hum(usb_temper, metaclass=matcher):
         rh_pc = -2.0468 + 0.0367 * rh - 1.5955e-6 * rh * rh
         rh_pc += (temp_c - 25) * (0.01 + 0.00008 * rh)
         rh_pc = min(max(rh_pc, 0.0), 100.0)
-        return temp_c, rh_pc
+
+        yield 'temp', '', temp_c
+        yield 'humid', '', rh_pc
 
 if __name__ == '__main__':
     ctx = pyudev.Context()
@@ -146,5 +157,6 @@ if __name__ == '__main__':
                 print(d)
                 print(d.phy())
                 print(d.version)
-                print(d.read_sensor())
+                for type_, name, value in d.read_sensor():
+                    print(type_, name, value)
                 print()
