@@ -50,7 +50,10 @@ class usb_temper:
     def close(self):
         self.__device.close()
 
-    def hid_phys(self):
+    def phy(self):
+        '''
+        Same as returned by the HIDIOCGRAWPHYS ioctl.
+        '''
         hid = self.__udev_device.find_parent(subsystem=b'hid')
         return hid.properties.get('HID_PHYS')
 
@@ -135,7 +138,7 @@ if __name__ == '__main__':
                     continue
                 e.push(contextlib.closing(d))
                 print(d)
-                print(d.hid_phys())
+                print(d.phy())
                 print(d.version)
                 print(d.read_sensor())
                 print()
