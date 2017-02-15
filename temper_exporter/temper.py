@@ -26,6 +26,7 @@ class usb_temper:
     def __init__(self, udev_device):
         self.__udev_device = udev_device
         self.__device = open(udev_device.device_node, 'r+b', buffering=0)
+        self.version = self.read_version()
 
     def __repr__(self):
         return '<{}({!r})>'.format(self.__class__.__name__, self.__udev_device.sys_path)
@@ -135,6 +136,6 @@ if __name__ == '__main__':
                 e.push(contextlib.closing(d))
                 print(d)
                 print(d.hid_phys())
-                print(d.read_version())
+                print(d.version)
                 print(d.read_sensor())
                 print()
