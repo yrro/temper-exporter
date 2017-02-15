@@ -14,10 +14,11 @@ $ python3 -m pip install git+https://github.com/yrro/temper-exporter.git
 $ temper-exporter
 ```
 
-You can then visit <http://localhost:9203/metrics> to view sensor readings;
+You can then visit <http://localhost:9203/> to view sensor readings;
 for instance:
 
 ```
+...
 ...
 ```
 
