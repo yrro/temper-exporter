@@ -55,6 +55,7 @@ class Collector:
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
+        self.__errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
 
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
@@ -74,6 +75,7 @@ class Collector:
                             print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
+                    self.__errors.inc()
                     try:
                         t.close()
                     except IOError:
@@ -96,6 +98,7 @@ class Collector:
                     self.__sensors[device] = cls(device)
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
+                    self.__errors.inc()
             elif device.action == 'remove':
                 t = self.__sensors.get(device)
                 if t is None:
