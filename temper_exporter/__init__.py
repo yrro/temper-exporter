@@ -59,7 +59,7 @@ class Collector:
 
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
-        humid = core.GaugeMetricFamily('temper_humidity_rh', 'Temperature reading', labels=['name', 'phy', 'version'])
+        humid = core.GaugeMetricFamily('temper_humidity_rh', 'Relative humidity reading', labels=['name', 'phy', 'version'])
         # Prevent two threads from reading from a device at the same time.
         # Heavy handed, but easier than a lock for each device.
         with self.__read_lock:
