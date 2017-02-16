@@ -51,7 +51,7 @@ def main():
     observer_thread.join()
 
 def handle_device_event(collector, device):
-    with collector.lock:
+    with collector.write_lock:
         if device.action == 'add' or device.action == None:
             t = collector.sensors.get(device)
             if t is not None:
@@ -73,12 +73,15 @@ def handle_device_event(collector, device):
 class Collector:
     def __init__(self):
         self.sensors = {}
-        self.lock = threading.Lock()
+        self.read_lock = threading.Lock()
+        self.write_lock = threading.Lock()
 
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
         humid = core.GaugeMetricFamily('temper_humidity_rh', 'Temperature reading', labels=['name', 'phy', 'version'])
-        with self.lock:
+        # Prevent two threads from reading from a device at the same time.
+        # Heavy handed, but easier than a lock for each device.
+        with self.read_lock:
             # Copy the dict so we can modify it during iteration
             for device, t in self.sensors.copy().items():
                 try:
@@ -94,6 +97,7 @@ class Collector:
                         t.close()
                     except IOError:
                         print('Error reading from {}'.format(device), file=sys.stderr)
-                    del self.sensor[device]
+                    with self.write_lock:
+                        del self.sensor[device]
         yield temp
         yield humid
