@@ -34,13 +34,13 @@ def main():
 
     ctx = pyudev.Context()
     mon = temper.monitor(ctx)
-    observer_thread = pyudev.MonitorObserver(mon, name='monitor', callback=functools.partial(handle_device_event, collector))
+    observer_thread = pyudev.MonitorObserver(mon, name='monitor', callback=collector.handle_device_event)
     observer_thread.start()
 
     for device in temper.list_devices(ctx):
         # It's OK to call this from the main thread because it takes the lock
         # on the sensor list
-        handle_device_event(collector, device)
+        collector.handle_device_event(device)
 
     def handle_sigterm(signum, frame):
         server.shutdown()
@@ -50,40 +50,20 @@ def main():
     wsgi_thread.join()
     observer_thread.join()
 
-def handle_device_event(collector, device):
-    with collector.write_lock:
-        if device.action == 'add' or device.action == None:
-            t = collector.sensors.get(device)
-            if t is not None:
-                return
-            cls = temper.matcher.match(device)
-            if cls is None:
-                return
-            try:
-                collector.sensors[device] = cls(device)
-            except IOError:
-                print('Error reading from {}'.format(device), file=sys.stderr)
-        elif device.action == 'remove':
-            t = collector.sensors.get(device)
-            if t is None:
-                return
-            t.close()
-            del collector.sensors[t]
-
 class Collector:
     def __init__(self):
-        self.sensors = {}
-        self.read_lock = threading.Lock()
-        self.write_lock = threading.Lock()
+        self.__sensors = {}
+        self.__read_lock = threading.Lock()
+        self.__write_lock = threading.Lock()
 
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
         humid = core.GaugeMetricFamily('temper_humidity_rh', 'Temperature reading', labels=['name', 'phy', 'version'])
         # Prevent two threads from reading from a device at the same time.
         # Heavy handed, but easier than a lock for each device.
-        with self.read_lock:
+        with self.__read_lock:
             # Copy the dict so we can modify it during iteration
-            for device, t in self.sensors.copy().items():
+            for device, t in self.__sensors.copy().items():
                 try:
                     for type_, name, value in t.read_sensor():
                         if type_ == 'temp':
@@ -97,7 +77,27 @@ class Collector:
                         t.close()
                     except IOError:
                         print('Error reading from {}'.format(device), file=sys.stderr)
-                    with self.write_lock:
+                    with self.__write_lock:
                         del self.sensor[device]
         yield temp
         yield humid
+
+    def handle_device_event(self, device):
+        with self.__write_lock:
+            if device.action == 'add' or device.action == None:
+                t = self.__sensors.get(device)
+                if t is not None:
+                    return
+                cls = temper.matcher.match(device)
+                if cls is None:
+                    return
+                try:
+                    self.__sensors[device] = cls(device)
+                except IOError:
+                    print('Error reading from {}'.format(device), file=sys.stderr)
+            elif device.action == 'remove':
+                t = self.__sensors.get(device)
+                if t is None:
+                    return
+                t.close()
+                del collector.__sensors[t]
