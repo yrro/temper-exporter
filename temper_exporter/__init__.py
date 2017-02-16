@@ -73,10 +73,11 @@ class Collector:
                         else:
                             print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
                 except IOError:
+                    print('Error reading from {}'.format(device), file=sys.stderr)
                     try:
                         t.close()
                     except IOError:
-                        print('Error reading from {}'.format(device), file=sys.stderr)
+                        pass
                     with self.__write_lock:
                         del self.sensor[device]
         yield temp
