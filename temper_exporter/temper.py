@@ -17,11 +17,24 @@ class matcher(type):
         meta.matchers.append(cls)
         return cls
 
+    @classmethod
+    def match(cls, device):
+        '''
+        Returns a class to handle the provided device, if one exists;
+        otherwise returns None.
+        '''
+        for m in cls.matchers:
+            if m.match(device):
+                return m
+        return None
+
 class usb_temper:
     @classmethod
     def match_interface(cls, udev_device, fn):
         intf = udev_device.find_parent(subsystem=b'usb', device_type=b'usb_interface')
-        return fn(intf) if intf else False
+        if intf is None:
+            return False
+        return fn(intf)
 
     def __init__(self, udev_device):
         self.__udev_device = udev_device
@@ -73,8 +86,7 @@ class usb_temper:
 class temper(usb_temper, metaclass=matcher):
     @classmethod
     def match(cls, udev_device):
-        if cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v1130p660Cd0150dc00dsc00dp00ic03isc00ip00in01'):
-            return cls(udev_device)
+        return cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v1130p660Cd0150dc00dsc00dp00ic03isc00ip00in01')
 
     def read_sensor(self):
         self.write(b'\x54\x00\x00\x00\x00\x00\x00\x00')
@@ -84,8 +96,7 @@ class temper(usb_temper, metaclass=matcher):
 class temper2(usb_temper, metaclass=matcher):
     @classmethod
     def match(cls, udev_device):
-        if cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7401d0001dc00dsc00dp00ic03isc01ip02in01'):
-            return cls(udev_device)
+        return cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7401d0001dc00dsc00dp00ic03isc01ip02in01')
 
     def read_calibration(self):
         self.write(cmd_get_calibration)
@@ -119,8 +130,7 @@ class temper2(usb_temper, metaclass=matcher):
 class temper2hum(usb_temper, metaclass=matcher):
     @classmethod
     def match(cls, udev_device):
-        if cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7402d0001dc00dsc00dp00ic03isc01ip02in01'):
-            return cls(udev_device)
+        return cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7402d0001dc00dsc00dp00ic03isc01ip02in01')
 
     def read_calibration(self):
         self.write(cmd_get_calibration)
@@ -148,15 +158,15 @@ class temper2hum(usb_temper, metaclass=matcher):
 if __name__ == '__main__':
     ctx = pyudev.Context()
     for hr in ctx.list_devices(subsystem=b'hidraw'):
-        for m in matcher.matchers:
-            with contextlib.ExitStack() as e:
-                d = m.match(hr)
-                if d is None:
-                    continue
-                e.push(contextlib.closing(d))
-                print(d)
-                print(d.phy())
-                print(d.version)
-                for type_, name, value in d.read_sensor():
-                    print(type_, name, value)
-                print()
+        with contextlib.ExitStack() as e:
+            cls = matcher.match(hr)
+            if cls is None:
+                continue
+            d = cls(hr)
+            e.push(contextlib.closing(d))
+            print(d)
+            print(d.phy())
+            print(d.version)
+            for type_, name, value in d.read_sensor():
+                print(type_, name, value)
+            print()
