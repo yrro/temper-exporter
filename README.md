@@ -10,8 +10,8 @@ Acknowledgements and thanks to edorfaus's
 [TEMPered](https://github.com/edorfaus/TEMPered) project for the information
 about how to communicate with the supported devices.
 
-Supprted Devices
-----------------
+Supported Devices
+-----------------
 
  * `TEMPer2_M12_V1.3` - sold as "TEMPer2"; two temperature sensors, one on an
    external probe
