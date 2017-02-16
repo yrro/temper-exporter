@@ -31,6 +31,10 @@ class matcher(type):
 class usb_temper:
     @classmethod
     def match_interface(cls, udev_device, fn):
+        '''
+        If udev_device is a USB device, calls fn on its usb_interface device
+        and returns the result. Otherwise, returns False.
+        '''
         intf = udev_device.find_parent(subsystem=b'usb', device_type=b'usb_interface')
         if intf is None:
             return False
@@ -155,9 +159,17 @@ class temper2hum(usb_temper, metaclass=matcher):
         yield 'temp', '', temp_c
         yield 'humid', '', rh_pc
 
+def monitor(ctx):
+    m = pyudev.Monitor.from_netlink(ctx)
+    m.filter_by(subsystem=b'hidraw')
+    return m
+
+def list_devices(ctx):
+    return ctx.list_devices(subsystem=b'hidraw')
+
 if __name__ == '__main__':
     ctx = pyudev.Context()
-    for hr in ctx.list_devices(subsystem=b'hidraw'):
+    for hr in list_devices(ctx):
         with contextlib.ExitStack() as e:
             cls = matcher.match(hr)
             if cls is None:
