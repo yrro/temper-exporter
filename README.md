@@ -6,6 +6,22 @@ Exports readings from various PCsensor TEMPer devices for
 
 [![Build Status](https://travis-ci.org/yrro/temper-exporter.svg?branch=master)](https://travis-ci.org/yrro/temper-exporter)
 
+Acknowledgements and thanks to edorfaus's
+[TEMPered](https://github.com/edorfaus/TEMPered) project for the information
+about how to communicate with the supported devices.
+
+Supprted Devices
+----------------
+
+ * `TEMPer2_M12_V1.3` - sold as "TEMPer2"; two temperature sensors, one on an
+   external probe
+ * `TEMPer1F_H1V1.5F` - sold as "TEMPerHUM": one temperature sensor and one
+   humidity sensor
+
+The devices are communicated with via the Linux `hidraw` API. Devices are
+identified by their corresponding USB interface's `modalias` attribute. Adding
+support for additional devices is straightforward.
+
 Running
 -------
 
@@ -28,8 +44,13 @@ temper_temperature_celsius{name="",phy="usb-3f980000.usb-1.3/input1",version="TE
 temper_humidity_rh{name="",phy="usb-3f980000.usb-1.3/input1",version="TEMPer1F_H1V1.5F"} 57.18932593800001
 ```
 
-Supprted Devices
-----------------
+The following labels are used:
+
+ * `name`: optional label used on devices with more than one sensor
+ * `phy`: physical location of the device (USB bus and ports through which it is
+   attached)
+ * `version`: string returned from the device in response to the 'get version'
+   command.
 
 Packaging
 ---------
