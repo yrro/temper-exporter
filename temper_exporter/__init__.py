@@ -59,7 +59,10 @@ def handle_device_event(collector, device):
             cls = temper.matcher.match(device)
             if cls is None:
                 return
-            collector.sensors[device] = cls(device)
+            try:
+                collector.sensors[device] = cls(device)
+            except IOError:
+                print('Error reading from {}'.format(device), file=sys.stderr)
         elif device.action == 'remove':
             t = collector.sensors.get(device)
             if t is None:
@@ -76,13 +79,21 @@ class Collector:
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
         humid = core.GaugeMetricFamily('temper_humidity_rh', 'Temperature reading', labels=['name', 'phy', 'version'])
         with self.lock:
-            for device, t in self.sensors.items():
-                for type_, name, value in t.read_sensor():
-                    if type_ == 'temp':
-                        temp.add_metric([name, t.phy(), t.version], value)
-                    elif type_ == 'humid':
-                        humid.add_metric([name, t.phy(), t.version], value)
-                    else:
-                        print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
+            # Copy the dict so we can modify it during iteration
+            for device, t in self.sensors.copy().items():
+                try:
+                    for type_, name, value in t.read_sensor():
+                        if type_ == 'temp':
+                            temp.add_metric([name, t.phy(), t.version], value)
+                        elif type_ == 'humid':
+                            humid.add_metric([name, t.phy(), t.version], value)
+                        else:
+                            print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
+                except IOError:
+                    try:
+                        t.close()
+                    except IOError:
+                        print('Error reading from {}'.format(device), file=sys.stderr)
+                    del self.sensor[device]
         yield temp
         yield humid
