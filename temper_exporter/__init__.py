@@ -38,6 +38,8 @@ def main():
     observer_thread.start()
 
     for device in temper.list_devices(ctx):
+        # It's OK to call this from the main thread because it takes the lock
+        # on the sensor list
         handle_device_event(collector, device)
 
     def handle_sigterm(signum, frame):
@@ -49,35 +51,32 @@ def main():
     observer_thread.join()
 
 def handle_device_event(collector, device):
-    if device.action == 'add' or device.action == None:
-        t = collector.sensors.get(device)
-        if t is not None:
-            return
-        cls = temper.matcher.match(device)
-        if cls is None:
-            return
-        collector.sensors[device] = cls(device)
-    elif device.action == 'remove':
-        t = collector.sensors.get(device)
-        if t is None:
-            return
-        t.close()
-        del collector.sensors[t]
+    with collector.lock:
+        if device.action == 'add' or device.action == None:
+            t = collector.sensors.get(device)
+            if t is not None:
+                return
+            cls = temper.matcher.match(device)
+            if cls is None:
+                return
+            collector.sensors[device] = cls(device)
+        elif device.action == 'remove':
+            t = collector.sensors.get(device)
+            if t is None:
+                return
+            t.close()
+            del collector.sensors[t]
 
 class Collector:
     def __init__(self):
         self.sensors = {}
-        # Bad stuff will probably happen if two threads try to read/write
-        # from/to the same device.
-        self.__lock = threading.Lock()
+        self.lock = threading.Lock()
 
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
         humid = core.GaugeMetricFamily('temper_humidity_rh', 'Temperature reading', labels=['name', 'phy', 'version'])
-        with self.__lock:
-            # Take a copy of the dict so that concurrent modification from the
-            # monitor thread won't cause a problem
-            for device, t in self.sensors.copy().items():
+        with self.lock:
+            for device, t in self.sensors.items():
                 for type_, name, value in t.read_sensor():
                     if type_ == 'temp':
                         temp.add_metric([name, t.phy(), t.version], value)
