@@ -28,6 +28,7 @@ travis_fold docker-deps-2 \
         git \
         python3 \
         python3-prometheus-client \
+        python3-pyudev \
         python3-setuptools
 
 travis_fold docker-changelog \
