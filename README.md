@@ -18,9 +18,9 @@ Supprted Devices
  * `TEMPer1F_H1V1.5F` - sold as "TEMPerHUM": one temperature sensor and one
    humidity sensor
 
-The devices are communicated with via the Linux `hidraw` API. Devices are
-identified by their corresponding USB interface's `modalias` attribute. Adding
-support for additional devices is straightforward.
+The Linux `hidraw` API is used to communicate with the devices.
+Devices are identified by their corresponding USB interface's `modalias`
+attribute.
 
 Running
 -------
