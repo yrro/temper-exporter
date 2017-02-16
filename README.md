@@ -18,8 +18,14 @@ You can then visit <http://localhost:9203/> to view sensor readings;
 for instance:
 
 ```
-...
-...
+# HELP temper_temperature_celsius Temperature reading
+# TYPE temper_temperature_celsius gauge
+temper_temperature_celsius{name="internal",phy="usb-3f980000.usb-1.4/input1",version="TEMPer2_M12_V1.3"} 21.625
+temper_temperature_celsius{name="external",phy="usb-3f980000.usb-1.4/input1",version="TEMPer2_M12_V1.3"} 20.625
+temper_temperature_celsius{name="",phy="usb-3f980000.usb-1.3/input1",version="TEMPer1F_H1V1.5F"} 25.980000000000004
+# HELP temper_humidity_rh Temperature reading
+# TYPE temper_humidity_rh gauge
+temper_humidity_rh{name="",phy="usb-3f980000.usb-1.3/input1",version="TEMPer1F_H1V1.5F"} 57.18932593800001
 ```
 
 Supprted Devices
