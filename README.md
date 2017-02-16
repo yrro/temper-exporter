@@ -14,7 +14,7 @@ $ python3 -m pip install git+https://github.com/yrro/temper-exporter.git
 $ temper-exporter
 ```
 
-You can then visit <http://localhost:9203/> to view sensor readings;
+You can then visit <http://localhost:9204/> to view sensor readings;
 for instance:
 
 ```
@@ -53,7 +53,7 @@ scrape_configs:
  - job_name: temper
    static_configs:
      - targets:
-        - 192.0.2.1:9203
+        - 192.0.2.1:9204
 ```
 
 Exporter Configuration
