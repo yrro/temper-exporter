@@ -1,0 +1,10 @@
+ACTION=="remove", GOTO="temper_end"
+SUBSYSTEM!="hidraw", GOTO="temper_end"
+
+SUBSYSTEMS=="usb", ATTRS{modalias}=="usb:v1130p660Cd0150dc00dsc00dp00ic03isc00ip00in01", MODE="0660", GROUP="_temper-exporter"
+SUBSYSTEMS=="usb", ATTRS{modalias}=="usb:v0C45p7401d0001dc00dsc00dp00ic03isc01ip02in01", MODE="0660", GROUP="_temper-exporter"
+SUBSYSTEMS=="usb", ATTRS{modalias}=="usb:v0C45p7402d0001dc00dsc00dp00ic03isc01ip02in01", MODE="0660", GROUP="_temper-exporter"
+
+LABEL="temper_end"
+
+# vim: ft=udevrules
