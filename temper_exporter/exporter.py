@@ -7,11 +7,13 @@ import prometheus_client.core as core
 from . import temper
 
 class Collector:
+
     def __init__(self):
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
         self.__errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
+
 
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
@@ -41,11 +43,13 @@ class Collector:
         yield temp
         yield humid
 
+
     def handle_device_event(self, device):
         if device.action == 'add' or device.action == None:
             self.__handle_device_add(device)
         elif device.action == 'remove':
             self.__handle_device_remove(device)
+
 
     def __handle_device_add(self, device):
         t = self.__sensors.get(device)
@@ -64,6 +68,7 @@ class Collector:
 
         with self.__write_lock:
             self.__sensors[device] = cls(device)
+
 
     def __handle_device_remove(self, device):
         t = self.__sensors.get(device)
