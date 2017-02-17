@@ -71,11 +71,7 @@ class Collector:
 
 
     def __handle_device_remove(self, device):
-        t = self.__sensors.get(device)
-        if t is None:
-            return
-
-        t.close()
-
         with self.__write_lock:
-            del self.__sensors[t]
+            t = self.__sensors.pop(device, None)
+        if t is not None:
+            t.close()
