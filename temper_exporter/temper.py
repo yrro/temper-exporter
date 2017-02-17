@@ -85,6 +85,8 @@ class usb_temper:
     def read_version(self):
         self.write(cmd_get_version)
         version = self.read8() + self.read8()
+        if len(version) != 16:
+            raise IOError('Short version response ({})'.format(len(version)))
         return version.decode('ascii', errors='replace')
 
     def read_sensor(self):
