@@ -42,22 +42,23 @@ class Collector:
         yield humid
 
     def handle_device_event(self, device):
-        with self.__write_lock:
-            if device.action == 'add' or device.action == None:
-                t = self.__sensors.get(device)
-                if t is not None:
-                    return
-                cls = temper.matcher.match(device)
-                if cls is None:
-                    return
-                try:
+        if device.action == 'add' or device.action == None:
+            t = self.__sensors.get(device)
+            if t is not None:
+                return
+            cls = temper.matcher.match(device)
+            if cls is None:
+                return
+            try:
+                with self.__write_lock:
                     self.__sensors[device] = cls(device)
-                except IOError:
-                    print('Error reading from {}'.format(device), file=sys.stderr)
-                    self.__errors.inc()
-            elif device.action == 'remove':
-                t = self.__sensors.get(device)
-                if t is None:
-                    return
-                t.close()
+            except IOError:
+                print('Error reading from {}'.format(device), file=sys.stderr)
+                self.__errors.inc()
+        elif device.action == 'remove':
+            t = self.__sensors.get(device)
+            if t is None:
+                return
+            t.close()
+            with self.__write_lock:
                 del self.__sensors[t]
