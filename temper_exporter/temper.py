@@ -92,10 +92,9 @@ class temper(usb_temper, metaclass=matcher):
     def match(cls, udev_device):
         return cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v1130p660Cd0150dc00dsc00dp00ic03isc00ip00in01')
 
-    def read_sensor(self):
-        self.write(b'\x54\x00\x00\x00\x00\x00\x00\x00')
-        print(self.read(8))
-        super().read_sensor()
+    #def read_sensor(self):
+        #self.write(b'\x54\x00\x00\x00\x00\x00\x00\x00')
+        #print(self.read(8))
 
 class temper2(usb_temper, metaclass=matcher):
     @classmethod
