@@ -54,10 +54,27 @@ class usb_temper:
     def __repr__(self):
         return '<{}({!r})>'.format(self.__class__.__name__, self.__udev_device.sys_path)
 
-    def read(self, nbytes):
-        # NB, first byte is report id iff the device uses numbered reports.
-        # Otherwise it's the data!
-        return self.__device.read(nbytes)
+    def read8(self):
+        '''
+        Read up to 8 bytes from the device (maximum observed size of response).
+        '''
+        # TEMPer devices don't use numbered reports, so there's nothing
+        # to do here except read from the device.
+        return self.__device.read(8)
+
+    def send(self, cmd, fmt):
+        '''
+        Issue a command, check and decode the response.
+        '''
+        assert len(cmd) == 8
+        self.write(cmd)
+        buf = self.read8()
+        if buf[0] != cmd[1] or buf[1] != struct.calcsize(fmt):
+            raise IOError('Unexpected response: {}'.format(buf))
+        try:
+            return struct.unpack_from(fmt, buf, 2)
+        except:
+            raise IOError('Bad response: {}'.format(buf))
 
     def write(self, data, report_id=b'\x00'):
         buf = report_id + data
@@ -67,7 +84,7 @@ class usb_temper:
 
     def read_version(self):
         self.write(cmd_get_version)
-        version = self.read(8) + self.read(8)
+        version = self.read8() + self.read8()
         return version.decode('ascii', errors='replace')
 
     def read_sensor(self):
@@ -94,7 +111,7 @@ class temper(usb_temper, metaclass=matcher):
 
     #def read_sensor(self):
         #self.write(b'\x54\x00\x00\x00\x00\x00\x00\x00')
-        #print(self.read(8))
+        #print(self.read8()
 
 class temper2(usb_temper, metaclass=matcher):
     @classmethod
@@ -102,33 +119,17 @@ class temper2(usb_temper, metaclass=matcher):
         return cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7401d0001dc00dsc00dp00ic03isc01ip02in01')
 
     def read_calibration(self):
-        self.write(cmd_get_calibration)
-        buf = self.read(8)
-        cmd, nbytes, correction, wtf = struct.unpack('>BBbbxxxx', buf)
-        if cmd != 0x82 or nbytes != 2:
-            raise IOError('Unexpected calibration response: {}'.format(buf))
+        correction, wtf = self.send(cmd_get_calibration, '>bb')
         return correction/16
 
     def read_id(self):
-        self.write(cmd_read_sensor_id)
-        buf = self.read(8)
-        cmd, nbytes, id_ = struct.unpack('>BBBxxxxx', buf)
-        if cmd != 0x89 or nbytes != 1:
-            raise IOError('Unexpected id response: {}'.format(id_buf))
+        id_ = self.send(cmd_read_sensor_id, '>b')
         return id_ & 0xf >> 1
 
     def read_sensor(self):
-        self.write(cmd_read_temper)
-        read_buf = self.read(8)
-        cmd, nbytes, tempi, tempe = struct.unpack('>BBhhxx', read_buf)
-        if cmd != 0x80 or nbytes != 4:
-            raise IOError('Unexpected read response: {}'.format(read_buf))
-
-        tempi_c = tempi * 125 / 32000
-        tempe_c = tempe * 125 / 32000
-
-        yield 'temp', 'internal', tempi_c
-        yield 'temp', 'external', tempe_c
+        tempi, tempe = self.send(cmd_read_temper, '>hh')
+        yield 'temp', 'internal', tempi * 125 / 32000
+        yield 'temp', 'external', tempe * 125 / 32000
 
 class temper2hum(usb_temper, metaclass=matcher):
     @classmethod
@@ -136,27 +137,16 @@ class temper2hum(usb_temper, metaclass=matcher):
         return cls.match_interface(udev_device, lambda i: i.get(b'MODALIAS') == 'usb:v0C45p7402d0001dc00dsc00dp00ic03isc01ip02in01')
 
     def read_calibration(self):
-        self.write(cmd_get_calibration)
-        buf = self.read(8)
-        cmd, nbytes, correction, wtf, correction2, wtf2 = struct.unpack('>BBbbbbxx', buf)
-        if cmd != 0x82 or nbytes != 4:
-            raise IOError('Unexpected calibration response: {}'.format(buf))
+        correction, wtf, correction2, wtf2 = self.send(cmd_get_calibration, '>bbbb')
         return correction/16, correction2/16
 
     def read_sensor(self):
-        self.write(cmd_read_temper)
-        read_buf = self.read(8)
-        cmd, nbytes, temp, rh = struct.unpack('>BBhhxx', read_buf)
-        if cmd != 0x80 or nbytes != 4:
-            raise IOError('Unexpected read response: {}'.format(read_buf))
-
+        temp, rh = self.send(cmd_read_temper, '>hh')
         temp_c = temp/100 - 39.7;
         rh_pc = -2.0468 + 0.0367 * rh - 1.5955e-6 * rh * rh
         rh_pc += (temp_c - 25) * (0.01 + 0.00008 * rh)
-        rh_pc = min(max(rh_pc, 0.0), 100.0)
-
         yield 'temp', '', temp_c
-        yield 'humid', '', rh_pc
+        yield 'humid', '', min(max(rh_pc, 0.0), 100.0)
 
 def monitor(ctx):
     m = pyudev.Monitor.from_netlink(ctx)
