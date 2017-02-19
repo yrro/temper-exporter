@@ -29,7 +29,7 @@ def main():
 
     server = wsgiext.Server((args.bind_address, args.bind_port), wsgiext.SilentRequestHandler, args.thread_count, args.bind_v6only)
     server.set_app(prometheus_client.make_wsgi_app())
-    wsgi_thread = threading.Thread(target=functools.partial(server.serve_forever, poll_interval=5), name='wsgi')
+    wsgi_thread = threading.Thread(target=functools.partial(server.serve_forever, poll_interval=86400), name='wsgi')
     wsgi_thread.start()
 
     ctx = pyudev.Context()
