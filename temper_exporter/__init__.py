@@ -15,8 +15,6 @@ from . import exporter
 from . import temper
 from . import wsgiext
 
-health_event = threading.Event()
-
 def main():
     '''
     You are here.
@@ -39,10 +37,10 @@ def main():
     mon = temper.monitor(ctx)
     observer_thread = pyudev.MonitorObserver(mon, name='monitor', callback=collector.handle_device_event)
 
-    health_thread = threading.Thread(target=functools.partial(health, collector, server), name='health')
+    health_thread = Health(collector, server)
 
     def handle_sigterm(signum, frame):
-        health_event.set()
+        health_thread.send_stop()
         server.shutdown()
         observer_thread.send_stop()
     signal.signal(signal.SIGTERM, handle_sigterm)
@@ -59,20 +57,50 @@ def main():
 
     server.server_close()
 
-def health(collector, server):
-    try:
-        addr, port, *rest = server.socket.getsockname()
-        while not health_event.wait(30):
-            if collector.exceptions._value.get() -- 0:
-                raise Exception('collector.exceptions')
-            elif collector.errors._value.get() > 0:
-                raise Exception('collector.errors')
+class Health(threading.Thread):
+    def __init__(self, collector, server, interval=30, *args, **kwargs):
+        super().__init__(name='health', *args, **kwargs)
+        self.__collector = collector
+        self.__server = server
+        self.__interval = interval
+        self.__event = threading.Event()
 
-            c = http.client.HTTPConnection(addr, port, timeout=5)
-            c.request('GET', '/')
-            r = c.getresponse()
-            if r.status != 200:
-                raise Exception('http error')
-    except:
-        os.kill(os.getpid(), signal.SIGTERM)
-        raise
+    def send_stop(self):
+        '''
+        Cause the thread to exit.
+        '''
+        self.__event.set()
+
+    def run(self):
+        '''
+        Monitor the health of the service.
+
+        If something fails, sends SIGTERM to the process. The signal handler
+        (which always runs in the main thread) will shut down the components
+        and then the process will exit.
+
+        We don't have to provide detailed error messages, since the component
+        that failed should already have logged something useful.
+        '''
+        try:
+            addr, port, *rest = self.__server.socket.getsockname()
+            while not self.__event.wait(self.__interval):
+                if self.__collector.exceptions._value.get() > 0:
+                    raise Health.HealthException
+                elif self.__collector.errors._value.get() > 0:
+                    raise Health.HealthException
+
+                c = http.client.HTTPConnection(addr, port, timeout=5)
+                c.request('GET', '/')
+                r = c.getresponse()
+                if r.status != 200:
+                    raise Health.HealthException
+        except Exception as e:
+            os.kill(os.getpid(), signal.SIGTERM)
+            if not isinstance(e, Health.HealthException):
+                # Something went wrong in the health check itself... make sure it
+                # hits the logs
+                raise
+
+    class HealthException(Exception):
+        pass
