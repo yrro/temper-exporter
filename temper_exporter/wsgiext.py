@@ -80,9 +80,9 @@ class HealthCheckServer(wsgiref.simple_server.WSGIServer):
             c.request('GET', '/')
         except http.client.HTTPException:
             return False
-        r = c.getresponse()
-        if r.status != 200:
-            return False
+        with c.getresponse() as r:
+            if r.status != 200:
+                return False
         return True
 
 class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
