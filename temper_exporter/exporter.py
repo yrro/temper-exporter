@@ -40,7 +40,7 @@ class Collector:
                     except IOError:
                         pass
                     with self.__write_lock:
-                        del self.sensor[device]
+                        del self.__sensors[device]
         yield temp
         yield humid
 
