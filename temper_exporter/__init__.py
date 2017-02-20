@@ -5,6 +5,7 @@ import http.client
 import os
 import pyudev
 import signal
+import sys
 import threading
 import wsgiref.simple_server
 
@@ -57,6 +58,8 @@ def main():
 
     server.server_close()
 
+    sys.exit(health_thread.exit_status)
+
 class Health(threading.Thread):
     def __init__(self, collector, server, interval=30, *args, **kwargs):
         super().__init__(name='health', *args, **kwargs)
@@ -64,6 +67,7 @@ class Health(threading.Thread):
         self.__server = server
         self.__interval = interval
         self.__event = threading.Event()
+        self.exit_status = 0
 
     def send_stop(self):
         '''
@@ -96,6 +100,7 @@ class Health(threading.Thread):
                 if r.status != 200:
                     raise Health.HealthException
         except Exception as e:
+            self.exit_status = 1
             os.kill(os.getpid(), signal.SIGTERM)
             if not isinstance(e, Health.HealthException):
                 # Something went wrong in the health check itself... make sure it
