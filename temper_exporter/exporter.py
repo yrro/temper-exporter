@@ -12,7 +12,8 @@ class Collector:
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
-        self.__errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
+        self.errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
+        self.exceptions = prometheus_client.Counter('temper_exceptions_total', 'Exceptions processing udev events')
 
 
     def collect(self):
@@ -33,7 +34,7 @@ class Collector:
                             print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
-                    self.__errors.inc()
+                    self.errors.inc()
                     try:
                         t.close()
                     except IOError:
@@ -56,14 +57,18 @@ class Collector:
 
 
     def handle_device_event(self, device):
-        if device.action == 'add' or device.action == None:
-            # If device.action is None then this is a coldplug event, which
-            # can be handled as normal, since if a hotplug event for the
-            # device already occurred then an entry for it will already be
-            # in __sensors.
-            self.__handle_device_add(device)
-        elif device.action == 'remove':
-            self.__handle_device_remove(device)
+        try:
+            if device.action == 'add' or device.action == None:
+                # If device.action is None then this is a coldplug event, which
+                # can be handled as normal, since if a hotplug event for the
+                # device already occurred then an entry for it will already be
+                # in __sensors.
+                self.__handle_device_add(device)
+            elif device.action == 'remove':
+                self.__handle_device_remove(device)
+        except:
+            self.exceptions.inc()
+            raise
 
 
     def __handle_device_add(self, device):
@@ -78,7 +83,7 @@ class Collector:
             t = cls(device)
         except IOError:
             print('Error reading from {}'.format(device), file=sys.stderr)
-            self.__errors.inc()
+            self.errors.inc()
             return
 
         with self.__write_lock:
