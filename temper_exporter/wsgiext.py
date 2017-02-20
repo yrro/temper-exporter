@@ -86,7 +86,7 @@ class HealthCheckServer(wsgiref.simple_server.WSGIServer):
         return True
 
 class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
-    def log_request(self, code, message):
+    def log_request(self, code='-', message='-'):
         if isinstance(code, http.HTTPStatus) and code.value < 400:
             return
         elif code[0] < '4':
