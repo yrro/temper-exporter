@@ -12,8 +12,8 @@ class Collector:
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
-        self.errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
-        self.exceptions = prometheus_client.Counter('temper_exceptions_total', 'Exceptions processing udev events')
+        self.__errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
+        self.__exceptions = prometheus_client.Counter('temper_exceptions_total', 'Exceptions processing udev events')
 
 
     def collect(self):
@@ -34,7 +34,7 @@ class Collector:
                             print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
-                    self.errors.inc()
+                    self.__errors.inc()
                     try:
                         t.close()
                     except IOError:
@@ -67,7 +67,7 @@ class Collector:
             elif device.action == 'remove':
                 self.__handle_device_remove(device)
         except:
-            self.exceptions.inc()
+            self.__exceptions.inc()
             raise
 
 
@@ -83,7 +83,7 @@ class Collector:
             t = cls(device)
         except IOError:
             print('Error reading from {}'.format(device), file=sys.stderr)
-            self.errors.inc()
+            self.__errors.inc()
             return
 
         with self.__write_lock:
@@ -95,3 +95,11 @@ class Collector:
             t = self.__sensors.pop(device, None)
         if t is not None:
             t.close()
+
+    def healthy(self):
+        # Collector checks
+        if self.__exceptions._value.get() > 0:
+            return False
+        elif self.__errors._value.get() > 0:
+            return False
+        return True

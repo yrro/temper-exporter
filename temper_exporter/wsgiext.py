@@ -1,5 +1,6 @@
 import concurrent.futures
 import http
+import http.client
 import socket
 import sys
 import wsgiref.simple_server
@@ -72,6 +73,18 @@ class IPv64Server(wsgiref.simple_server.WSGIServer):
             self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, self.__bind_v6only)
         super().server_bind()
 
+class HealthCheckServer(wsgiref.simple_server.WSGIServer):
+    def healthy(self):
+        c = http.client.HTTPConnection(self.server_address[0], self.server_address[1], timeout=5)
+        try:
+            c.request('GET', '/')
+        except http.client.HTTPException:
+            return False
+        r = c.getresponse()
+        if r.status != 200:
+            return False
+        return True
+
 class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
     def log_request(self, code, message):
         if isinstance(code, http.HTTPStatus) and code.value < 400:
@@ -80,7 +93,7 @@ class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
             return
         super().log_request(code, message)
 
-class Server(IPv64Server, InstantShutdownServer, ThreadPoolServer):
+class Server(HealthCheckServer, IPv64Server, InstantShutdownServer, ThreadPoolServer):
     '''
     A WSGIServer that works with IPv6, and processes requests concurrently.
 

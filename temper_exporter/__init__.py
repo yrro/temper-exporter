@@ -1,7 +1,6 @@
 import argparse
 import ipaddress
 import functools
-import http.client
 import os
 import pyudev
 import signal
@@ -99,21 +98,9 @@ class Health(threading.Thread):
                 os.kill(os.getpid(), signal.SIGTERM)
 
     def __healthy(self):
-        # Collector checks
-        if self.__collector.exceptions._value.get() > 0:
+        if not self.__collector.healthy():
             return False
-        elif self.__collector.errors._value.get() > 0:
+        elif not self.__server.healthy():
             return False
-
-        # WSGIServer checks
-        addr, port, *rest = self.__server.socket.getsockname()
-        c = http.client.HTTPConnection(addr, port, timeout=5)
-        try:
-            c.request('GET', '/')
-        except http.client.HTTPException:
-            return False
-        r = c.getresponse()
-        if r.status != 200:
-            return False
-
-        return True
+        else:
+            return True
