@@ -81,7 +81,7 @@ class HealthCheckServer(wsgiref.simple_server.WSGIServer):
         except http.client.HTTPException:
             return False
         with c.getresponse() as r:
-            if r.status != 200:
+            if r.status != http.HTTPStatus.OK:
                 return False
         return True
 
