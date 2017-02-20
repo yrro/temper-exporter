@@ -58,7 +58,7 @@ class Collector:
 
     def handle_device_event(self, device):
         try:
-            if device.action == 'add' or device.action == None:
+            if device.action == 'add' or device.action is None:
                 # If device.action is None then this is a coldplug event, which
                 # can be handled as normal, since if a hotplug event for the
                 # device already occurred then an entry for it will already be

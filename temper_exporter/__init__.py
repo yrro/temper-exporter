@@ -2,7 +2,6 @@ import argparse
 import ipaddress
 import functools
 import os
-import pyudev
 import signal
 import sys
 import threading
@@ -10,6 +9,7 @@ import wsgiref.simple_server
 
 import prometheus_client
 import prometheus_client.core as core
+import pyudev
 
 from . import exporter
 from . import temper

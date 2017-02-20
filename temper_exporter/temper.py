@@ -12,9 +12,9 @@ cmd_read_sensor_id  = b'\x01\x89\x55\x00\x00\x00\x00\x00' # temper2 only
 class matcher(type):
     matchers = []
 
-    def __new__(meta, name, bases, class_dict):
-        cls = super().__new__(meta, name, bases, class_dict)
-        meta.matchers.append(cls)
+    def __new__(mcs, name, bases, class_dict):
+        cls = super().__new__(mcs, name, bases, class_dict)
+        mcs.matchers.append(cls)
         return cls
 
     @classmethod
@@ -144,7 +144,7 @@ class temper2hum(usb_temper, metaclass=matcher):
 
     def read_sensor(self):
         temp, rh = self.send(cmd_read_temper, '>hh')
-        temp_c = temp/100 - 39.7;
+        temp_c = temp/100 - 39.7
         rh_pc = -2.0468 + 0.0367 * rh - 1.5955e-6 * rh * rh
         rh_pc += (temp_c - 25) * (0.01 + 0.00008 * rh)
         yield 'temp', '', temp_c
