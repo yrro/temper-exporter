@@ -95,7 +95,10 @@ class Health(threading.Thread):
                     raise Health.HealthException
 
                 c = http.client.HTTPConnection(addr, port, timeout=5)
-                c.request('GET', '/')
+                try:
+                    c.request('GET', '/')
+                except http.client.HTTPException:
+                    raise Health.HealthException
                 r = c.getresponse()
                 if r.status != 200:
                     raise Health.HealthException
