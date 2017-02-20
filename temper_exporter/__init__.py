@@ -87,24 +87,8 @@ class Health(threading.Thread):
         that failed should already have logged something useful.
         '''
         try:
-            addr, port, *rest = self.__server.socket.getsockname()
             while not self.__event.wait(self.__interval):
-                # Collector checks
-                if self.__collector.exceptions._value.get() > 0:
-                    self.exit_status = 1
-                    break
-                elif self.__collector.errors._value.get() > 0:
-                    self.exit_status = 1
-                    break
-                # WSGIServer checks
-                c = http.client.HTTPConnection(addr, port, timeout=5)
-                try:
-                    c.request('GET', '/')
-                except http.client.HTTPException:
-                    self.exit_status = 1
-                    break
-                r = c.getresponse()
-                if r.status != 200:
+                if not self.__healthy():
                     self.exit_status = 1
                     break
         except:
@@ -113,3 +97,23 @@ class Health(threading.Thread):
         finally:
             if self.exit_status != 0:
                 os.kill(os.getpid(), signal.SIGTERM)
+
+    def __healthy(self):
+        # Collector checks
+        if self.__collector.exceptions._value.get() > 0:
+            return False
+        elif self.__collector.errors._value.get() > 0:
+            return False
+
+        # WSGIServer checks
+        addr, port, *rest = self.__server.socket.getsockname()
+        c = http.client.HTTPConnection(addr, port, timeout=5)
+        try:
+            c.request('GET', '/')
+        except http.client.HTTPException:
+            return False
+        r = c.getresponse()
+        if r.status != 200:
+            return False
+
+        return True
