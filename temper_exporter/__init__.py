@@ -89,26 +89,27 @@ class Health(threading.Thread):
         try:
             addr, port, *rest = self.__server.socket.getsockname()
             while not self.__event.wait(self.__interval):
+                # Collector checks
                 if self.__collector.exceptions._value.get() > 0:
-                    raise Health.HealthException
+                    self.exit_status = 1
+                    break
                 elif self.__collector.errors._value.get() > 0:
-                    raise Health.HealthException
-
+                    self.exit_status = 1
+                    break
+                # WSGIServer checks
                 c = http.client.HTTPConnection(addr, port, timeout=5)
                 try:
                     c.request('GET', '/')
                 except http.client.HTTPException:
-                    raise Health.HealthException
+                    self.exit_status = 1
+                    break
                 r = c.getresponse()
                 if r.status != 200:
-                    raise Health.HealthException
-        except Exception as e:
+                    self.exit_status = 1
+                    break
+        except:
             self.exit_status = 1
-            os.kill(os.getpid(), signal.SIGTERM)
-            if not isinstance(e, Health.HealthException):
-                # Something went wrong in the health check itself... make sure it
-                # hits the logs
-                raise
-
-    class HealthException(Exception):
-        pass
+            raise
+        finally:
+            if self.exit_status != 0:
+                os.kill(os.getpid(), signal.SIGTERM)
