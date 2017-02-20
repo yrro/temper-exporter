@@ -90,7 +90,7 @@ class Health(threading.Thread):
                 if not self.__healthy():
                     self.exit_status = 1
                     break
-        except:
+        except Exception:
             self.exit_status = 1
             raise
         finally:

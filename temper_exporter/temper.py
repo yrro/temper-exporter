@@ -48,7 +48,7 @@ class usb_temper:
     def __del__(self):
         try:
             self.close()
-        except:
+        except Exception:
             pass
 
     def __repr__(self):
@@ -73,7 +73,7 @@ class usb_temper:
             raise IOError('Unexpected response: {}'.format(buf))
         try:
             return struct.unpack_from(fmt, buf, 2)
-        except:
+        except Exception:
             raise IOError('Bad response: {}'.format(buf))
 
     def write(self, data, report_id=b'\x00'):

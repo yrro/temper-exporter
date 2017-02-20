@@ -66,7 +66,7 @@ class Collector:
                 self.__handle_device_add(device)
             elif device.action == 'remove':
                 self.__handle_device_remove(device)
-        except:
+        except Exception:
             self.__exceptions.inc()
             raise
 
