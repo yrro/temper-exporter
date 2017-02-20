@@ -5,6 +5,10 @@ SHELL=/bin/bash
 %:
 	dh $@ --with=python3 --buildsystem=pybuild
 
+override_dh_auto_test:
+	dh_auto_test -O--buildsystem=pybuild
+	-pylint3 temper_exporter
+
 clean:
 	rm -f debian/changelog; \
 	EDITOR=true VISUAL=true \

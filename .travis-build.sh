@@ -26,6 +26,7 @@ travis_fold docker-deps-2 \
         debhelper \
         devscripts \
         git \
+        pylint3 \
         python3 \
         python3-prometheus-client \
         python3-pyudev \
