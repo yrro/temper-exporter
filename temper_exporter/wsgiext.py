@@ -3,10 +3,11 @@ import http
 import http.client
 import ipaddress
 import socket
+import socketserver
 import sys
 import wsgiref.simple_server
 
-class ThreadPoolServer(wsgiref.simple_server.WSGIServer):
+class ThreadPoolServer(socketserver.TCPServer):
     def __pre_init(self, max_threads):
         '''
         This must be called, by a deriving class, before __init__ is called.
@@ -38,7 +39,7 @@ class ThreadPoolServer(wsgiref.simple_server.WSGIServer):
         super().server_close()
         self.__ex.shutdown()
 
-class InstantShutdownServer(wsgiref.simple_server.WSGIServer):
+class InstantShutdownServer(socketserver.TCPServer):
     '''
     Connecting to the underlying SocketServer's listening socket will wake it
     up. It will then immediately check the shutdown flag, rather than waiting
@@ -56,12 +57,12 @@ class InstantShutdownServer(wsgiref.simple_server.WSGIServer):
             except BlockingIOError:
                 pass
 
-class IPv64Server(wsgiref.simple_server.WSGIServer):
+class IPv64Server(socketserver.TCPServer):
     '''
     >>> class Server(IPv64Server):
     ...     def __init__(self, server_address, bind_v6only):
     ...         self._IPv64Server__pre_init(server_address, bind_v6only)
-    ...         super().__init__(server_address, wsgiref.simple_server.WSGIRequestHandler)
+    ...         super().__init__(server_address, socketserver.StreamRequestHandler)
 
     >>> s1 = Server(('0.0.0.0', 0), bind_v6only=None)
     >>> s1.address_family
@@ -130,7 +131,7 @@ class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
             return
         super().log_request(code, message)
 
-class Server(HealthCheckServer, IPv64Server, InstantShutdownServer, ThreadPoolServer):
+class Server(HealthCheckServer, IPv64Server, InstantShutdownServer, ThreadPoolServer, wsgiref.simple_server.WSGIServer):
     def __init__(self, server_address, *, max_threads, bind_v6only, bind_and_activate=True):
         self._IPv64Server__pre_init(server_address, bind_v6only)
         self._ThreadPoolServer__pre_init(max_threads)
