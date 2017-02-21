@@ -59,7 +59,7 @@ class InstantShutdownServer(wsgiref.simple_server.WSGIServer):
 
 class IPv64Server(wsgiref.simple_server.WSGIServer):
     '''
-    >>> class Server(IPv64Server, wsgiref.simple_server.WSGIServer):
+    >>> class Server(IPv64Server):
     ...     def __init__(self, server_address, bind_v6only):
     ...         self._IPv64Server__pre_init(server_address, bind_v6only)
     ...         super().__init__(server_address, wsgiref.simple_server.WSGIRequestHandler)
