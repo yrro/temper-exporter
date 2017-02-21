@@ -107,6 +107,12 @@ I'm trying to keep things simple and rely only on the Python standard library,
 [pyudev](http://pypi.python.org/pypi/pyudev) and the
 [prometheus_client](https://github.com/prometheus/client_python) module.
 
+To run the tests:
+
+```
+$ python3 -m pytest
+```
+
 To run `exporter` from source:
 
 ```
