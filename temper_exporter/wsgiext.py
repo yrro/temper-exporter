@@ -96,12 +96,7 @@ class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
         super().log_request(code, message)
 
 class Server(HealthCheckServer, IPv64Server, InstantShutdownServer, ThreadPoolServer):
-    '''
-    A WSGIServer that works with IPv6, and processes requests concurrently.
-
-    server_address[0] must be an ipaddress.ip_address, as opposed to the normal string.
-    '''
-    def __init__(self, server_address, max_threads, bind_v6only, bind_and_activate=True):
+    def __init__(self, server_address, *, max_threads, bind_v6only, bind_and_activate=True):
         self._IPv64Server__pre_init(server_address, bind_v6only)
         self._ThreadPoolServer__pre_init(max_threads)
         super().__init__(server_address, SilentRequestHandler, bind_and_activate)

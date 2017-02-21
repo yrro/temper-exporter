@@ -29,7 +29,7 @@ def main():
     collector = exporter.Collector()
     core.REGISTRY.register(collector)
 
-    server = wsgiext.Server((str(args.bind_address), args.bind_port), args.thread_count, args.bind_v6only)
+    server = wsgiext.Server((str(args.bind_address), args.bind_port), max_threads=args.thread_count, bind_v6only=args.bind_v6only)
     server.set_app(prometheus_client.make_wsgi_app())
     wsgi_thread = threading.Thread(target=functools.partial(server.serve_forever, poll_interval=86400), name='wsgi')
 
