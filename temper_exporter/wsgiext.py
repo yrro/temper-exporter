@@ -58,6 +58,42 @@ class InstantShutdownServer(wsgiref.simple_server.WSGIServer):
         # __shutdown_request and return.
 
 class IPv64Server(wsgiref.simple_server.WSGIServer):
+    '''
+    >>> class Server(IPv64Server, wsgiref.simple_server.WSGIServer):
+    ...     def __init__(self, server_address, bind_v6only):
+    ...         self._IPv64Server__pre_init(server_address, bind_v6only)
+    ...         super().__init__(server_address, wsgiref.simple_server.WSGIRequestHandler)
+
+    >>> s1 = Server(('0.0.0.0', 0), bind_v6only=None)
+    >>> s1.address_family
+    <AddressFamily.AF_INET: 2>
+
+    >>> s2 = Server(('0.0.0.0', 0), bind_v6only=0)
+    >>> s2.address_family
+    <AddressFamily.AF_INET: 2>
+
+    >>> s3 = Server(('0.0.0.0', 0), bind_v6only=1)
+    >>> s3.address_family
+    <AddressFamily.AF_INET: 2>
+
+    >>> s4 = Server(('::', 0), bind_v6only=None)
+    >>> s4.address_family
+    <AddressFamily.AF_INET6: 10>
+    >>> s4.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY) == int(open('/proc/sys/net/ipv6/bindv6only').read())
+    True
+
+    >>> s5 = Server(('::', 0), bind_v6only=0)
+    >>> s5.address_family
+    <AddressFamily.AF_INET6: 10>
+    >>> s5.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY)
+    0
+
+    >>> s6 = Server(('::', 0), bind_v6only=1)
+    >>> s6.address_family
+    <AddressFamily.AF_INET6: 10>
+    >>> s6.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY)
+    1
+    '''
     def __pre_init(self, server_address, bind_v6only):
         '''
         This must be called, by a deriving class, before __init__ is called.
