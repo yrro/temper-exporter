@@ -28,6 +28,7 @@ travis_fold docker-deps-2 \
         git \
         pylint3 \
         python3 \
+        python3-nose \
         python3-prometheus-client \
         python3-pyudev \
         python3-setuptools

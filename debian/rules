@@ -2,12 +2,16 @@
 
 SHELL := /bin/bash
 
+# pybuild doesn't copy setup.cf into .pybuild/*/build before running tests,
+# so the contents of setup.cfg are ignored
+export NOSE_WITH_DOCTEST := 1
+
 %:
 	dh $@ --with=python3 --buildsystem=pybuild
 
 override_dh_auto_test:
 	dh_auto_test -O--buildsystem=pybuild
-	-pylint3 temper_exporter
+	#-pylint3 temper_exporter
 
 clean:
 	rm -f debian/changelog; \
