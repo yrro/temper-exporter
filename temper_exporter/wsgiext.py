@@ -1,6 +1,7 @@
 import concurrent.futures
 import http
 import http.client
+import ipaddress
 import socket
 import sys
 import wsgiref.simple_server
@@ -64,7 +65,8 @@ class IPv64Server(wsgiref.simple_server.WSGIServer):
         This is because TCPServer.__init__ uses self.address_family to create
         the socket.
         '''
-        self.address_family = socket.AF_INET6 if server_address.version == 6 else socket.AF_INET
+        ip = ipaddress.ip_address(server_address[0])
+        self.address_family = socket.AF_INET6 if ip.version == 6 else socket.AF_INET
         self.__bind_v6only = bind_v6only
 
     def server_bind(self):
@@ -100,6 +102,6 @@ class Server(HealthCheckServer, IPv64Server, InstantShutdownServer, ThreadPoolSe
     server_address[0] must be an ipaddress.ip_address, as opposed to the normal string.
     '''
     def __init__(self, server_address, max_threads, bind_v6only, bind_and_activate=True):
-        self._IPv64Server__pre_init(server_address[0], bind_v6only)
+        self._IPv64Server__pre_init(server_address, bind_v6only)
         self._ThreadPoolServer__pre_init(max_threads)
-        super().__init__((str(server_address[0]), server_address[1]), SilentRequestHandler, bind_and_activate)
+        super().__init__(server_address, SilentRequestHandler, bind_and_activate)
