@@ -2,10 +2,6 @@
 
 SHELL := /bin/bash
 
-# pybuild doesn't copy setup.cf into .pybuild/*/build before running tests,
-# so the contents of setup.cfg are ignored
-export NOSE_WITH_DOCTEST := 1
-
 %:
 	dh $@ --with=python3 --buildsystem=pybuild
 
