@@ -41,7 +41,7 @@ def main():
 
     def handle_sigterm(signum, frame):
         health_thread.send_stop()
-        server.shutdown()
+        server.send_stop()
         observer_thread.send_stop()
     signal.signal(signal.SIGTERM, handle_sigterm)
 

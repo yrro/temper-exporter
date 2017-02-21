@@ -44,18 +44,17 @@ class InstantShutdownServer(wsgiref.simple_server.WSGIServer):
     up. It will then immediately check the shutdown flag, rather than waiting
     for the poll_interval.
     '''
-    def shutdown(self):
+    def send_stop(self):
+        # Unfortunately there is no public API for setting this flag, and
+        # calling super().shutdown() here would block us
+        self._BaseServer__shutdown_request = True
+        # Now connect to the server to cause it to wake up
         with socket.socket(self.socket.family) as s:
             s.setblocking(0)
             try:
                 s.connect(self.socket.getsockname())
             except BlockingIOError:
                 pass
-            # Now the thread running serve_forever is waiting for the client
-            # to send a request...
-            super().shutdown()
-        # Now our socket is closed, the thread running serve_forever will check
-        # __shutdown_request and return.
 
 class IPv64Server(wsgiref.simple_server.WSGIServer):
     '''
