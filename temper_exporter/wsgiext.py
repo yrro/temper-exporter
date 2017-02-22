@@ -89,9 +89,12 @@ class HealthCheckServer(wsgiref.simple_server.WSGIServer):
 
 class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
     def log_request(self, code='-', message='-'):
-        if isinstance(code, http.HTTPStatus) and code.value < 400:
+        if isinstance(code, str) and code[0] < '4':
+            # WSGIRequestHandler always calls this with a string.
             return
-        elif code[0] < '4':
+        elif isinstance(code, http.HTTPStatus) and code.value < 400:
+            # But a bad request is handled by BaseHTTPRequestHandler, which
+            # uses an HTTPStatus
             return
         super().log_request(code, message)
 
