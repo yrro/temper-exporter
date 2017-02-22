@@ -1,5 +1,7 @@
 *.py[co]
 *.egg-info/
+# created by pytest
+.cache/
 .pybuild/
 build/
 dist/
