@@ -25,13 +25,7 @@ class Collector:
             # Copy the dict so we can modify it during iteration
             for device, t in self.__sensors.copy().items():
                 try:
-                    for type_, name, value in t.read_sensor():
-                        if type_ == 'temp':
-                            temp.add_metric([name, t.phy(), t.version], value)
-                        elif type_ == 'humid':
-                            humid.add_metric([name, t.phy(), t.version], value)
-                        else:
-                            print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
+                    readings = t.read_sensor()
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
                     self.__errors.inc()
@@ -41,6 +35,16 @@ class Collector:
                         pass
                     with self.__write_lock:
                         del self.__sensors[device]
+                    continue
+
+                for type_, name, value in readings:
+                    if type_ == 'temp':
+                        temp.add_metric([name, t.phy(), t.version], value)
+                    elif type_ == 'humid':
+                        humid.add_metric([name, t.phy(), t.version], value)
+                    else:
+                        print('Unknown sensor type <{}>'.format(type_), file=sys.stderr)
+
         yield temp
         yield humid
 
