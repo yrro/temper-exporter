@@ -5,8 +5,10 @@ SHELL := /bin/bash
 %:
 	dh $@ --with=python3 --buildsystem=pybuild
 
+# pybuild blocks network access by setting the environment variable
+# http_proxy=http://127.0.0.1:9/; this breaks tests that use urllib.request.
 override_dh_auto_test:
-	dh_auto_test -O--buildsystem=pybuild
+	no_proxy='*' dh_auto_test -O--buildsystem=pybuild
 	#-pylint3 temper_exporter
 
 clean:
