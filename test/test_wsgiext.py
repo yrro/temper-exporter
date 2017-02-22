@@ -1,9 +1,12 @@
+import errno
 import functools
 import socket
 import socketserver
 import threading
 from urllib import error, request
 from wsgiref import simple_server
+
+import pytest
 
 from temper_exporter import wsgiext
 
@@ -43,33 +46,24 @@ class IServer(wsgiext.IPv64Server):
         self._IPv64Server__pre_init(server_address, bind_v6only)
         super().__init__(server_address, socketserver.StreamRequestHandler)
 
-def test_IPv64Server_ipv4_None():
-    s = IServer(('0.0.0.0', 0), bind_v6only=None)
-    assert s.address_family == socket.AddressFamily.AF_INET
-
-def test_IPv64Server_ipv4_0():
-    s = IServer(('0.0.0.0', 0), bind_v6only=0)
-    assert s.address_family == socket.AddressFamily.AF_INET
-
-def test_IPv64Server_ipv4_1():
-    s = IServer(('0.0.0.0', 0), bind_v6only=1)
-    assert s.address_family == socket.AddressFamily.AF_INET
-
-def test_IPv64Server_ipv6_None():
-    s = IServer(('::', 0), bind_v6only=None)
-    assert s.address_family == socket.AddressFamily.AF_INET6
-    assert s.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY) == int(open('/proc/sys/net/ipv6/bindv6only').read())
-
-def test_IPv64Server_ipv6_0():
-    s = IServer(('::', 0), bind_v6only=0)
-    assert s.address_family == socket.AddressFamily.AF_INET6
-    assert s.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY) == 0
-
-def test_IPv64Server_ipv6_1():
-    s = IServer(('::', 0), bind_v6only=1)
-    assert s.address_family == socket.AddressFamily.AF_INET6
-    assert s.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY) == 1
-
+@pytest.mark.parametrize('address, v6only, expected_family, expected_v6only', [
+    ('0.0.0.0', None,  socket.AddressFamily.AF_INET, None),
+    ('0.0.0.0',    0,  socket.AddressFamily.AF_INET, None),
+    ('0.0.0.0',    1,  socket.AddressFamily.AF_INET, None),
+    (     '::', None, socket.AddressFamily.AF_INET6, int(open('/proc/sys/net/ipv6/bindv6only').read())),
+    (     '::',    0, socket.AddressFamily.AF_INET6, 0),
+    (     '::',    1, socket.AddressFamily.AF_INET6, 1),
+])
+def test_IPv64Server(address, v6only, expected_family, expected_v6only):
+    s = IServer((address, 0), bind_v6only=v6only)
+    assert s.address_family == expected_family
+    try:
+        assert s.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY) == expected_v6only
+    except OSError as e:
+        if e.errno == errno.ENOTSUP and expected_v6only is None:
+            pass
+        else:
+            raise
 
 def test_HealthCheckServer_200():
     s = wsgiext.HealthCheckServer(('', 0), simple_server.WSGIRequestHandler)
