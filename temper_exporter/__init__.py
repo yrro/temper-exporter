@@ -49,7 +49,7 @@ def main():
     observer_thread.start()
     health_thread.start()
 
-    collector.coldplug_scan(ctx)
+    collector.coldplug_scan(functools.partial(temper.list_devices, ctx))
 
     wsgi_thread.join()
     observer_thread.join()

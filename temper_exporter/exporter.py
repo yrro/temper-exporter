@@ -49,14 +49,14 @@ class Collector:
         yield humid
 
 
-    def coldplug_scan(self, ctx):
+    def coldplug_scan(self, list_fn):
         '''
         Call this from the main thread, after the device-event handling thread
         has started. That way, there's no chance of missed events between the
         time of the coldplug scan and the time that the netlink socket starts
         receiving events.
         '''
-        for device in temper.list_devices(ctx):
+        for device in list_fn():
             self.handle_device_event(device)
 
 
