@@ -26,7 +26,10 @@ def main():
     parser.add_argument('--thread-count', type=int, help='Number of request-handling threads to spawn')
     args = parser.parse_args()
 
-    collector = exporter.Collector()
+    class MyCollector(exporter.Collector):
+        def class_for_device(self, device):
+            return temper.matcher.match(device)
+    collector = MyCollector()
     core.REGISTRY.register(collector)
 
     server = wsgiext.Server((str(args.bind_address), args.bind_port), max_threads=args.thread_count, bind_v6only=args.bind_v6only)
@@ -49,7 +52,7 @@ def main():
     observer_thread.start()
     health_thread.start()
 
-    collector.coldplug_scan(functools.partial(temper.list_devices, ctx))
+    collector.coldplug_scan(temper.list_devices(ctx))
 
     wsgi_thread.join()
     observer_thread.join()

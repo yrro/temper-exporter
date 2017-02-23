@@ -4,8 +4,6 @@ import threading
 import prometheus_client
 import prometheus_client.core as core
 
-from . import temper
-
 class Collector:
 
     def __init__(self):
@@ -18,6 +16,7 @@ class Collector:
     def collect(self):
         temp = core.GaugeMetricFamily('temper_temperature_celsius', 'Temperature reading', labels=['name', 'phy', 'version'])
         humid = core.GaugeMetricFamily('temper_humidity_rh', 'Relative humidity reading', labels=['name', 'phy', 'version'])
+
         # Prevent two threads from reading from a device at the same time.
         # Heavy handed, but easier than a lock for each device.
         with self.__read_lock:
@@ -48,14 +47,14 @@ class Collector:
         yield humid
 
 
-    def coldplug_scan(self, list_fn):
+    def coldplug_scan(self, devices):
         '''
         Call this from the main thread, after the device-event handling thread
         has started. That way, there's no chance of missed events between the
         time of the coldplug scan and the time that the netlink socket starts
         receiving events.
         '''
-        for device in list_fn():
+        for device in devices:
             self.handle_device_event(device)
 
 
@@ -75,9 +74,10 @@ class Collector:
         if t is not None:
             return
 
-        cls = temper.matcher.match(device)
+        cls = self.class_for_device(device)
         if cls is None:
             return
+
         try:
             t = cls(device)
         except IOError:
@@ -86,11 +86,18 @@ class Collector:
             return
 
         with self.__write_lock:
-            self.__sensors[device] = cls(device)
-
+            self.__sensors[device] = t
 
     def __handle_device_remove(self, device):
         with self.__write_lock:
             t = self.__sensors.pop(device, None)
         if t is not None:
             t.close()
+
+
+    def class_for_device(self, device):
+        '''
+        Override this method. Given a pyudev.Device, it should return a
+        temper.usb_temper class (not instance!) to handle the device.
+        '''
+        raise NotImplementedError

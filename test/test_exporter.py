@@ -1,48 +1,83 @@
 import types
+from unittest import mock
 
 import pytest
+import pyudev
 
-from temper_exporter import exporter
+from temper_exporter import exporter, temper
 
 def test_empty_collector():
     c = exporter.Collector()
 
-    c.coldplug_scan(list)
-    assert c.healthy()
+    c.coldplug_scan([])
+    assert c.healthy
 
     for fam in c.collect():
         assert fam.samples == []
-    assert c.healthy()
+    assert c.healthy
 
-class Device(types.SimpleNamespace):
-    action = None
-    device_node = None
+def test_populated_collector():
+    d = mock.create_autospec(pyudev.Device)
+    d.action = None
 
-    def __hash__(self):
-        return hash(tuple(sorted(self.__dict__.items())))
+    t = mock.create_autospec(temper.usb_temper)
+    t.phy.return_value = ':phy:'
+    t.version = 'VERSIONSTRING___'
+    t.read_sensor.return_value = [
+        ('temp', 'foo', 22),
+        ('humid', 'bar', 45),
+    ]
 
-    def find_parent(self, subsystem, device_type=None, device_node=None):
-        raise NotImplementedError
+    class MyCollector(exporter.Collector):
+        def class_for_device(self, device):
+            return mock.Mock(return_value=t)
+    c = MyCollector()
 
-    def get(self, attribute, default=None):
-        return default
+    c.coldplug_scan([d])
+    assert c.healthy
 
-class NonUSBDevice(Device):
-    def find_parent(self, subsystem, device_type=None):
-        return None
+    fams = list(c.collect())
+    assert fams[0].name == 'temper_temperature_celsius'
+    assert fams[0].type == 'gauge'
+    assert fams[0].samples == [('temper_temperature_celsius', {'name': 'foo', 'phy': ':phy:', 'version': 'VERSIONSTRING___'}, 22)]
+    assert fams[1].name == 'temper_humidity_rh'
+    assert fams[1].type == 'gauge'
+    assert fams[1].samples == [('temper_humidity_rh', {'name': 'bar', 'phy': ':phy:', 'version': 'VERSIONSTRING___'}, 45)]
 
-class NonTemperUSBInterface(Device):
-    pass
+    assert c.healthy
 
-class NonTemperDevice(Device):
-    def find_parent(self, subsystem, device_type=None):
-        return NonTemperUSBInterface()
+def test_open_failure():
+    d = mock.create_autospec(pyudev.Device)
+    d.action = None
 
-def test_nonusb_devices_ignored():
-    c = exporter.Collector()
-    c.coldplug_scan(lambda: [NonUSBDevice()])
-    assert c.healthy()
+    T = mock.Mock(side_effect = IOError)
 
-def test_non_temper_devices_ignored():
-    c = exporter.Collector()
-    c.coldplug_scan(lambda: [NonTemperDevice()])
+    class MyCollector(exporter.Collector):
+        def class_for_device(self, device):
+            return T
+    c = MyCollector()
+
+    c.coldplug_scan([d])
+    assert not c.healthy
+
+def test_read_failure():
+    d = mock.create_autospec(pyudev.Device)
+    d.action = None
+
+    t = mock.create_autospec(temper.usb_temper)
+    t.read_sensor.side_effect = IOError
+
+    T = mock.Mock(return_value=t)
+
+    class MyCollector(exporter.Collector):
+        def class_for_device(self, device):
+            return T
+    c = MyCollector()
+
+    c.coldplug_scan([d])
+    assert c.healthy
+
+    list(c.collect())
+    assert not c.healthy
+
+    assert c._Collector__sensors == {}
