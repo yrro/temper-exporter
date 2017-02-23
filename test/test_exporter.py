@@ -4,7 +4,16 @@ from unittest import mock
 import pytest
 import pyudev
 
-from temper_exporter import exporter, temper
+from temper_exporter import temper
+from temper_exporter.exporter import Collector
+
+def test_non_temper_device():
+    d = mock.create_autospec(pyudev.Device)
+    d.action = None
+    c = Collector()
+    c.class_for_device = mock.create_autospec(c.class_for_device, return_value=None)
+    c.coldplug_scan([d])
+    assert c.class_for_device.called
 
 def test_collection():
     d = mock.create_autospec(pyudev.Device)
@@ -17,7 +26,7 @@ def test_collection():
         ('humid', 'bar', 45),
     ]
 
-    c = exporter.Collector()
+    c = Collector()
     c._Collector__sensors = {d: t}
 
     fams = list(c.collect())
@@ -30,16 +39,29 @@ def test_collection():
 
     assert c.healthy
 
+def test_coldplug_scan():
+    d = mock.create_autospec(pyudev.Device)
+    d.action = None
+
+    t = mock.create_autospec(temper.usb_temper)
+    T = mock.create_autospec(temper.usb_temper, return_value=t)
+
+    c = Collector()
+    c.class_for_device = mock.create_autospec(c.class_for_device, return_value=T)
+
+    c.coldplug_scan([d])
+
+    assert c._Collector__sensors == {d: t}
+    assert c.healthy
+
 def test_open_failure():
     d = mock.create_autospec(pyudev.Device)
     d.action = None
 
     T = mock.Mock(side_effect = IOError)
 
-    class MyCollector(exporter.Collector):
-        def class_for_device(self, device):
-            return T
-    c = MyCollector()
+    c = Collector()
+    c.class_for_device = mock.create_autospec(c.class_for_device, return_value=T)
 
     c.coldplug_scan([d])
     assert not c.healthy
@@ -49,11 +71,14 @@ def test_read_failure():
 
     t = mock.create_autospec(temper.usb_temper)
     t.read_sensor.side_effect = IOError
+    t.close.side_effect = IOError
 
-    c = exporter.Collector()
+    c = Collector()
     c._Collector__sensors = {d: t}
 
-    list(c.collect())
+    for fam in c.collect():
+        pass
+
     assert c._Collector__sensors == {}
     assert not c.healthy
 
@@ -65,10 +90,8 @@ def test_add_device():
 
     T = mock.Mock(return_value=t)
 
-    class MyCollector(exporter.Collector):
-        def class_for_device(self, device):
-            return T
-    c = MyCollector()
+    c = Collector()
+    c.class_for_device = mock.create_autospec(c.class_for_device, return_value=T)
 
     c.handle_device_event(d1)
     assert c._Collector__sensors == {d1: t}
@@ -80,10 +103,9 @@ def test_add_duplicate_device():
 
     t1 = mock.create_autospec(temper.usb_temper, name='t1')
     t2 = mock.create_autospec(temper.usb_temper, name='t2')
-    T = mock.Mock()
 
-    c = exporter.Collector()
-    c.class_for_device=mock.create_autospec(c.class_for_device)
+    c = Collector()
+    c.class_for_device = mock.create_autospec(c.class_for_device)
     c._Collector__sensors = {d1: t1}
 
     d2 = mock.create_autospec(pyudev.Device, name='d2')
@@ -98,10 +120,11 @@ def test_add_duplicate_device():
 
     c.handle_device_event(d2)
 
+    # The collector should not have tried to open d2
     assert not c.class_for_device.called
     # The original usb_temper should still be in the dict
     assert len(c._Collector__sensors) == 1
-    assert c._Collector__sensors.popitem()[1] == t1
+    assert c._Collector__sensors.popitem()[1] is t1
 
 def test_remove_device():
     d1 = mock.create_autospec(pyudev.Device, name='d1')
@@ -110,7 +133,7 @@ def test_remove_device():
 
     t = mock.create_autospec(temper.usb_temper, name='t1')
 
-    c = exporter.Collector()
+    c = Collector()
     c._Collector__sensors = {d1: t}
 
     d2 = mock.create_autospec(pyudev.Device, name='d2')
