@@ -6,15 +6,13 @@ import prometheus_client.core as core
 
 from . import temper
 
-_errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
-_exceptions = prometheus_client.Counter('temper_exceptions_total', 'Exceptions processing udev events')
-
 class Collector:
 
     def __init__(self):
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
+        self.healthy = True
 
 
     def collect(self):
@@ -29,7 +27,7 @@ class Collector:
                     readings = t.read_sensor()
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
-                    _errors.inc()
+                    self.healthy = False
                     try:
                         t.close()
                     except IOError:
@@ -61,7 +59,6 @@ class Collector:
             self.handle_device_event(device)
 
 
-    @_exceptions.count_exceptions()
     def handle_device_event(self, device):
         if device.action == 'add' or device.action is None:
             # If device.action is None then this is a coldplug event, which
@@ -85,7 +82,7 @@ class Collector:
             t = cls(device)
         except IOError:
             print('Error reading from {}'.format(device), file=sys.stderr)
-            _errors.inc()
+            self.healthy = False
             return
 
         with self.__write_lock:
@@ -97,11 +94,3 @@ class Collector:
             t = self.__sensors.pop(device, None)
         if t is not None:
             t.close()
-
-    def healthy(self):
-        # Collector checks
-        if _exceptions._value.get() > 0:
-            return False
-        elif _errors._value.get() > 0:
-            return False
-        return True

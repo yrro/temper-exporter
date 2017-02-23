@@ -98,7 +98,7 @@ class Health(threading.Thread):
                 os.kill(os.getpid(), signal.SIGTERM)
 
     def __healthy(self):
-        if not self.__collector.healthy():
+        if not self.__collector.healthy:
             return False
         elif not self.__server.healthy():
             return False
