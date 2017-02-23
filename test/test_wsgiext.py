@@ -23,7 +23,7 @@ class TPServer(wsgiext.ThreadPoolServer, simple_server.WSGIServer):
 def test_ThreadPoolServer():
     s = TPServer()
     s.set_app(functools.partial(app, '200 OK'))
-    t = threading.Thread(target=functools.partial(s.serve_forever), daemon=True)
+    t = threading.Thread(target=functools.partial(s.serve_forever, poll_interval=0.1), daemon=True)
     t.start()
     with request.urlopen('http://{}:{}/'.format(*s.server_address)) as r:
         assert r.read() == b'blah\r\n'
@@ -72,7 +72,7 @@ def test_IPv64Server(address, v6only, expected_family, expected_v6only):
 def test_HealthCheckServer(status, expected):
     s = wsgiext.HealthCheckServer(('', 0), simple_server.WSGIRequestHandler)
     s.set_app(functools.partial(app, status))
-    t = threading.Thread(target=functools.partial(s.serve_forever), daemon=True)
+    t = threading.Thread(target=functools.partial(s.serve_forever, poll_interval=0.1), daemon=True)
     t.start()
     assert s.healthy() == expected
     s.shutdown()
@@ -91,7 +91,7 @@ class SRH(wsgiext.SilentRequestHandler):
 def test_SilentRequestHandler(capsys, status, expected):
     s = simple_server.WSGIServer(('', 0), SRH)
     s.set_app(functools.partial(app, status))
-    t = threading.Thread(target=functools.partial(s.serve_forever), daemon=True)
+    t = threading.Thread(target=functools.partial(s.serve_forever, poll_interval=0.1), daemon=True)
     t.start()
 
     try:
