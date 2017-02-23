@@ -6,14 +6,15 @@ import prometheus_client.core as core
 
 from . import temper
 
+_errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
+_exceptions = prometheus_client.Counter('temper_exceptions_total', 'Exceptions processing udev events')
+
 class Collector:
 
     def __init__(self):
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
-        self.__errors = prometheus_client.Counter('temper_errors_total', 'Errors reading from TEMPer devices')
-        self.__exceptions = prometheus_client.Counter('temper_exceptions_total', 'Exceptions processing udev events')
 
 
     def collect(self):
@@ -28,7 +29,7 @@ class Collector:
                     readings = t.read_sensor()
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
-                    self.__errors.inc()
+                    _errors.inc()
                     try:
                         t.close()
                     except IOError:
@@ -60,19 +61,16 @@ class Collector:
             self.handle_device_event(device)
 
 
+    @_exceptions.count_exceptions()
     def handle_device_event(self, device):
-        try:
-            if device.action == 'add' or device.action is None:
-                # If device.action is None then this is a coldplug event, which
-                # can be handled as normal, since if a hotplug event for the
-                # device already occurred then an entry for it will already be
-                # in __sensors.
-                self.__handle_device_add(device)
-            elif device.action == 'remove':
-                self.__handle_device_remove(device)
-        except Exception:
-            self.__exceptions.inc()
-            raise
+        if device.action == 'add' or device.action is None:
+            # If device.action is None then this is a coldplug event, which
+            # can be handled as normal, since if a hotplug event for the
+            # device already occurred then an entry for it will already be
+            # in __sensors.
+            self.__handle_device_add(device)
+        elif device.action == 'remove':
+            self.__handle_device_remove(device)
 
 
     def __handle_device_add(self, device):
@@ -87,7 +85,7 @@ class Collector:
             t = cls(device)
         except IOError:
             print('Error reading from {}'.format(device), file=sys.stderr)
-            self.__errors.inc()
+            _errors.inc()
             return
 
         with self.__write_lock:
@@ -102,8 +100,8 @@ class Collector:
 
     def healthy(self):
         # Collector checks
-        if self.__exceptions._value.get() > 0:
+        if _exceptions._value.get() > 0:
             return False
-        elif self.__errors._value.get() > 0:
+        elif _errors._value.get() > 0:
             return False
         return True
