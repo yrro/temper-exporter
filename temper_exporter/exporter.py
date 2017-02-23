@@ -88,6 +88,7 @@ class Collector:
         with self.__write_lock:
             self.__sensors[device] = t
 
+
     def __handle_device_remove(self, device):
         with self.__write_lock:
             t = self.__sensors.pop(device, None)
