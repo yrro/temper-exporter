@@ -25,6 +25,7 @@ def test_main(process):
     r = urllib.request.urlopen('http://[::1]:9204/')
     for family in text_string_to_metric_families(r.read().decode('utf-8')):
         for sample in family.samples:
+            # TODO mock pyudev to return dummy device, and check that its readings are present here
             print(sample)
 
     process.send_signal(signal.SIGTERM)
