@@ -113,6 +113,8 @@ To run the tests:
 $ python3 -m pytest
 ```
 
+Add `--cov=temper_exporter --cov-report=htmt` to obtain a coverage report.
+
 To run `exporter` from source:
 
 ```
@@ -121,7 +123,6 @@ $ temper-exporter
 ```
 
 or, without installing:
-
 
 ```
 $ python3 -m temper_exporter
