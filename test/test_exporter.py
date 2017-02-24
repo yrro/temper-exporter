@@ -1,4 +1,3 @@
-import types
 from unittest import mock
 
 import pytest
