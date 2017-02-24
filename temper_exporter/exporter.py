@@ -10,7 +10,7 @@ class Collector:
         self.__sensors = {}
         self.__read_lock = threading.Lock()
         self.__write_lock = threading.Lock()
-        self.healthy = True
+        self.__healthy = True
 
 
     def collect(self):
@@ -26,7 +26,7 @@ class Collector:
                     readings = t.read_sensor()
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
-                    self.healthy = False
+                    self.__healthy = False
                     try:
                         t.close()
                     except IOError:
@@ -82,7 +82,7 @@ class Collector:
             t = cls(device)
         except IOError:
             print('Error reading from {}'.format(device), file=sys.stderr)
-            self.healthy = False
+            self.__healthy = False
             return
 
         with self.__write_lock:
@@ -102,3 +102,6 @@ class Collector:
         temper.usb_temper class (not instance!) to handle the device.
         '''
         raise NotImplementedError
+
+    def healthy(self):
+        return self.__healthy

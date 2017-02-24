@@ -37,7 +37,7 @@ def test_collection():
     assert fams[1].type == 'gauge'
     assert fams[1].samples == [('temper_humidity_rh', {'name': 'bar', 'phy': ':phy:', 'version': 'VERSIONSTRING___'}, 45)]
 
-    assert c.healthy
+    assert c.healthy()
 
 def test_coldplug_scan():
     d = mock.create_autospec(pyudev.Device)
@@ -52,7 +52,7 @@ def test_coldplug_scan():
     c.coldplug_scan([d])
 
     assert c._Collector__sensors == {d: t}
-    assert c.healthy
+    assert c.healthy()
 
 def test_open_failure():
     d = mock.create_autospec(pyudev.Device)
@@ -64,7 +64,7 @@ def test_open_failure():
     c.class_for_device = mock.create_autospec(c.class_for_device, return_value=T)
 
     c.coldplug_scan([d])
-    assert not c.healthy
+    assert not c.healthy()
 
 def test_read_failure():
     d = mock.create_autospec(pyudev.Device)
@@ -80,7 +80,7 @@ def test_read_failure():
         pass
 
     assert c._Collector__sensors == {}
-    assert not c.healthy
+    assert not c.healthy()
 
 def test_add_device():
     d1 = mock.create_autospec(pyudev.Device)

@@ -40,7 +40,7 @@ def main():
     mon = temper.monitor(ctx)
     observer_thread = pyudev.MonitorObserver(mon, name='monitor', callback=collector.handle_device_event)
 
-    health_thread = Health(collector, server)
+    health_thread = Health([collector, server], 30)
 
     def handle_sigterm(signum, frame):
         health_thread.send_stop()
@@ -63,10 +63,9 @@ def main():
     sys.exit(health_thread.exit_status)
 
 class Health(threading.Thread):
-    def __init__(self, collector, server, interval=30, *args, **kwargs):
+    def __init__(self, components, interval):
         super().__init__(name='health')
-        self.__collector = collector
-        self.__server = server
+        self.__components = (component for component in components)
         self.__interval = interval
         self.__event = threading.Event()
         self.exit_status = 0
@@ -92,18 +91,13 @@ class Health(threading.Thread):
             while not self.__event.wait(self.__interval):
                 if not self.__healthy():
                     self.exit_status = 1
-                    break
-        except Exception:
-            self.exit_status = 1
-            raise
+                    return
         finally:
             if self.exit_status != 0:
                 os.kill(os.getpid(), signal.SIGTERM)
 
     def __healthy(self):
-        if not self.__collector.healthy:
+        try:
+            return all(component.healthy() for component in self.__components)
+        except Exception:
             return False
-        elif not self.__server.healthy():
-            return False
-        else:
-            return True
