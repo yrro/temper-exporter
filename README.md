@@ -120,7 +120,7 @@ or, without installing:
 $ python3 -m temper_exporter
 ```
 
-Don't forget to place the udev rules in place so that you have permission to
+Don't forget to place the [udev rules](debian/prometheus-temper-exporter.udev) in place so that you have permission to
 access the device nodes.
 
 To run the tests:
