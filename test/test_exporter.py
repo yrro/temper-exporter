@@ -7,8 +7,7 @@ from temper_exporter import temper
 from temper_exporter.exporter import Collector
 
 def test_non_temper_device():
-    d = mock.create_autospec(pyudev.Device)
-    d.action = None
+    d = mock.create_autospec(pyudev.Device, action=None)
     c = Collector()
     c.class_for_device = mock.create_autospec(c.class_for_device, return_value=None)
     c.coldplug_scan([d])
@@ -39,8 +38,7 @@ def test_collection():
     assert c.healthy()
 
 def test_coldplug_scan():
-    d = mock.create_autospec(pyudev.Device)
-    d.action = None
+    d = mock.create_autospec(pyudev.Device, action=None)
 
     t = mock.create_autospec(temper.usb_temper)
     T = mock.create_autospec(temper.usb_temper, return_value=t)
@@ -54,8 +52,7 @@ def test_coldplug_scan():
     assert c.healthy()
 
 def test_open_failure():
-    d = mock.create_autospec(pyudev.Device)
-    d.action = None
+    d = mock.create_autospec(pyudev.Device, action=None)
 
     T = mock.Mock(side_effect = IOError)
 
@@ -82,8 +79,7 @@ def test_read_failure():
     assert not c.healthy()
 
 def test_add_device():
-    d1 = mock.create_autospec(pyudev.Device)
-    d1.action = 'add'
+    d1 = mock.create_autospec(pyudev.Device, action='add')
 
     t = mock.create_autospec(temper.usb_temper)
 
@@ -96,8 +92,7 @@ def test_add_device():
     assert c._Collector__sensors == {d1: t}
 
 def test_add_duplicate_device():
-    d1 = mock.create_autospec(pyudev.Device, name='d1')
-    d1.device_path = '/sys/foo'
+    d1 = mock.create_autospec(pyudev.Device, name='d1', device_path='/sys/foo')
     d1.__hash__.return_value = hash(d1.device_path)
 
     t1 = mock.create_autospec(temper.usb_temper, name='t1')
@@ -107,9 +102,7 @@ def test_add_duplicate_device():
     c.class_for_device = mock.create_autospec(c.class_for_device)
     c._Collector__sensors = {d1: t1}
 
-    d2 = mock.create_autospec(pyudev.Device, name='d2')
-    d2.action = 'add'
-    d2.device_path = '/sys/foo'
+    d2 = mock.create_autospec(pyudev.Device, name='d2', action='add', device_path='/sys/foo')
     d2.__hash__.return_value = hash(d2.device_path)
 
     def eq(a, b):
@@ -126,8 +119,7 @@ def test_add_duplicate_device():
     assert c._Collector__sensors.popitem()[1] is t1
 
 def test_remove_device():
-    d1 = mock.create_autospec(pyudev.Device, name='d1')
-    d1.device_path = '/sys/foo'
+    d1 = mock.create_autospec(pyudev.Device, name='d1', device_path='/sys/foo')
     d1.__hash__.return_value = hash(d1.device_path)
 
     t = mock.create_autospec(temper.usb_temper, name='t1')
@@ -135,9 +127,7 @@ def test_remove_device():
     c = Collector()
     c._Collector__sensors = {d1: t}
 
-    d2 = mock.create_autospec(pyudev.Device, name='d2')
-    d2.action = 'remove'
-    d2.device_path = '/sys/foo'
+    d2 = mock.create_autospec(pyudev.Device, name='d2', action='remove', device_path='/sys/foo')
     d2.__hash__.return_value = hash(d2.device_path)
 
     def eq(a, b):
