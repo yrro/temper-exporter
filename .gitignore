@@ -3,6 +3,7 @@
 # created by pytest
 .cache/
 /.coverage
+/.eggs/
 .pybuild/
 build/
 dist/

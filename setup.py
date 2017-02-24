@@ -30,7 +30,14 @@ setup(
     install_requires = [
         'prometheus_client',
         'pyudev',
-        'setuptools'
+        'setuptools',
+    ],
+    setup_requires=[
+        'pytest-runner',
+    ],
+    tests_require = [
+        'pytest',
+        'pytest-mock',
     ],
     entry_points = {
         'console_scripts': [

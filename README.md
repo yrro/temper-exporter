@@ -107,15 +107,7 @@ I'm trying to keep things simple and rely only on the Python standard library,
 [pyudev](http://pypi.python.org/pypi/pyudev) and the
 [prometheus_client](https://github.com/prometheus/client_python) module.
 
-To run the tests:
-
-```
-$ python3 -m pytest
-```
-
-Add `--cov=temper_exporter --cov-report=htmt` to obtain a coverage report.
-
-To run `exporter` from source:
+To fetch and install dependencies and run `exporter` from source:
 
 ```
 $ python3 -m pip install -e .
@@ -130,3 +122,15 @@ $ python3 -m temper_exporter
 
 Don't forget to place the udev rules in place so that you have permission to
 access the device nodes.
+
+To run the tests:
+
+```
+$ python3 setup.py test
+```
+
+For coverage reports:
+
+```
+$ python3 -m pytest --cov=temper_exporter --cov-report=html
+```
