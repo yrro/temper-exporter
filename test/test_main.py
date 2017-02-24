@@ -4,6 +4,8 @@ import sys
 import time
 import urllib.request
 
+import temper_exporter
+
 from prometheus_client.parser import text_string_to_metric_families
 import pytest
 
@@ -26,3 +28,19 @@ def test_main(process):
 
     process.send_signal(signal.SIGTERM)
     assert process.wait(timeout=1) == 0
+
+def test_bad_health_exits_with_nonzero_status(mocker):
+    # Otherwise argparse will interpret pytest's arguments and will system.exit(2)
+    mocker.patch('sys.argv', ['temper_exporter'])
+
+    class Unhealth(temper_exporter.Health):
+        def __init__(self, *args, **kwargs):
+            super().__init__(interval=1, *args, **kwargs)
+        def _Health__healthy(self):
+            return False
+
+    mocker.patch('temper_exporter.Health', Unhealth)
+
+    with pytest.raises(SystemExit) as excinfo:
+        temper_exporter.main()
+    assert excinfo.value.code == 1

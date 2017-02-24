@@ -64,7 +64,7 @@ def main():
 
 class Health(threading.Thread):
     def __init__(self, collector, server, interval=30, *args, **kwargs):
-        super().__init__(name='health', *args, **kwargs)
+        super().__init__(name='health')
         self.__collector = collector
         self.__server = server
         self.__interval = interval
