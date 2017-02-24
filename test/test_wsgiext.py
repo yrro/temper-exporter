@@ -1,8 +1,10 @@
 import errno
 import functools
+import http.client
 import socket
 import socketserver
 import threading
+from unittest import mock
 from urllib import error, request
 from wsgiref import simple_server
 
@@ -69,7 +71,7 @@ def test_IPv64Server(address, v6only, expected_family, expected_v6only):
     ('200 OK', True),
     ('500 Not OK', False),
 ])
-def test_HealthCheckServer(status, expected):
+def test_HealthCheckServer_health(status, expected):
     s = wsgiext.HealthCheckServer(('', 0), simple_server.WSGIRequestHandler)
     s.set_app(functools.partial(app, status))
     t = threading.Thread(target=functools.partial(s.serve_forever, poll_interval=0.1), daemon=True)
@@ -79,6 +81,20 @@ def test_HealthCheckServer(status, expected):
     t.join()
     s.server_close()
 
+def test_HealthCheckServer_unhealthy_on_client_error(mocker):
+    con = mock.create_autospec(http.client.HTTPConnection)
+    con.request.side_effect = http.client.HTTPException
+    mocker.patch('http.client.HTTPConnection', mock.create_autospec(http.client.HTTPConnection, return_value=con))
+
+    s = wsgiext.HealthCheckServer(('', 0), simple_server.WSGIRequestHandler)
+    s.set_app(functools.partial(app, '200 OK'))
+    t = threading.Thread(target=functools.partial(s.serve_forever, poll_interval=0.1), daemon=True)
+    t.start()
+    assert not s.healthy()
+    assert not con.getresponse.called # because con.request raised HTTPException
+    s.shutdown()
+    t.join()
+    s.server_close()
 
 class SRH(wsgiext.SilentRequestHandler):
     def log_date_time_string(self):
