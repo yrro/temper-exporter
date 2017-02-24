@@ -11,6 +11,7 @@ Build-Depends:
  python3-prometheus-client,
  python3-pytest,
  python3-pytest-mock,
+ python3-pytest-runner,
  python3-pyudev,
  python3-setuptools,
 Standards-Version: 3.9.7

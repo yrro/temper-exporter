@@ -31,6 +31,7 @@ travis_fold docker-deps-2 \
         python3-prometheus-client \
         python3-pytest \
         python3-pytest-mock \
+        python3-pytest-runner \
         python3-pyudev \
         python3-setuptools
 

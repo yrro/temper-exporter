@@ -13,8 +13,6 @@ override_dh_auto_test:
 
 clean:
 	rm -f debian/changelog; \
-	# Prevent the 'Installed pytest_runner-*-*.egg messages from screwing up changelog generation'
-	python3 setup.py --name
 	EDITOR=true VISUAL=true \
 		dch --create \
 			--package="$(shell python3 setup.py --name)" \
