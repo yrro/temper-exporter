@@ -2,6 +2,8 @@
 *.egg-info/
 # created by pytest
 .cache/
+/.coverage
 .pybuild/
 build/
 dist/
+htmlcov/
