@@ -1,4 +1,5 @@
 import concurrent.futures
+from contextlib import suppress
 import http
 import http.client
 import ipaddress
@@ -46,10 +47,8 @@ class InstantShutdownServer(socketserver.TCPServer):
         # Now connect to the server to cause it to wake up
         with socket.socket(self.socket.family) as s:
             s.setblocking(0)
-            try:
+            with suppress(BlockingIOError):
                 s.connect(self.socket.getsockname())
-            except BlockingIOError:
-                pass
 
 class IPv64Server(socketserver.TCPServer):
     def __init__(self, server_address, *args, bind_v6only, **kwargs):

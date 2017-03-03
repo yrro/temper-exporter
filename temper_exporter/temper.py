@@ -46,10 +46,8 @@ class usb_temper:
         self.version = self.read_version()
 
     def __del__(self):
-        try:
+        with contextlib.suppress(Exception):
             self.close()
-        except Exception:
-            pass
 
     def __repr__(self):
         return '<{}({!r})>'.format(self.__class__.__name__, self.__udev_device.sys_path)

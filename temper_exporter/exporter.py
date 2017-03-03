@@ -1,3 +1,4 @@
+from contextlib import suppress
 import sys
 import threading
 
@@ -27,10 +28,8 @@ class Collector:
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
                     self.__healthy = False
-                    try:
+                    with suppress(IOError):
                         t.close()
-                    except IOError:
-                        pass
                     with self.__write_lock:
                         del self.__sensors[device]
                     continue
