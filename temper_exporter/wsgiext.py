@@ -8,18 +8,12 @@ import sys
 import wsgiref.simple_server
 
 class ThreadPoolServer(socketserver.TCPServer):
-    def __pre_init(self, max_threads):
-        '''
-        This must be called, by a deriving class, before __init__ is called.
-
-        This is because the thread pool has to be set up before requests are
-        processed, and because overriding __init__ is problematic while also
-        changing its signature, *and* coöperating with IPv64Server.
-        '''
+    def __init__(self, *args, max_threads=None, **kwargs):
         if sys.version_info.major <= 3 and sys.version_info.minor < 5:
             if max_threads is None:
                 max_threads = 4
         self.__ex = concurrent.futures.ThreadPoolExecutor(max_threads)
+        super().__init__(*args, **kwargs)
 
     def process_request(self, request, client_address):
         self.__ex.submit(self.__process_request_thread, request, client_address)
@@ -58,16 +52,11 @@ class InstantShutdownServer(socketserver.TCPServer):
                 pass
 
 class IPv64Server(socketserver.TCPServer):
-    def __pre_init(self, server_address, bind_v6only):
-        '''
-        This must be called, by a deriving class, before __init__ is called.
-
-        This is because TCPServer.__init__ uses self.address_family to create
-        the socket.
-        '''
+    def __init__(self, server_address, *args, bind_v6only, **kwargs):
         ip = ipaddress.ip_address(server_address[0])
         self.address_family = socket.AF_INET6 if ip.version == 6 else socket.AF_INET
         self.__bind_v6only = bind_v6only
+        super().__init__(server_address, *args, **kwargs)
 
     def server_bind(self):
         self.socket.setsockopt(socket.IPPROTO_IP, 15, 1) # IP_FREEBIND
@@ -99,7 +88,5 @@ class SilentRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
         super().log_request(code, message)
 
 class Server(HealthCheckServer, IPv64Server, InstantShutdownServer, ThreadPoolServer, wsgiref.simple_server.WSGIServer):
-    def __init__(self, server_address, *, max_threads, bind_v6only, bind_and_activate=True):
-        self._IPv64Server__pre_init(server_address, bind_v6only)
-        self._ThreadPoolServer__pre_init(max_threads)
-        super().__init__(server_address, SilentRequestHandler, bind_and_activate)
+    def __init__(self, server_address, **kwargs):
+        super().__init__(server_address, SilentRequestHandler, **kwargs)

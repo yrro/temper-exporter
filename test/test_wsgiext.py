@@ -16,22 +16,26 @@ def app(status, environ, start_response):
     start_response(status, [('content-type', 'text/plain')])
     return [b'blah\r\n']
 
+class EchoRequestHandler(socketserver.StreamRequestHandler):
+    timeout = 1
+
+    def handle(self):
+        self.wfile.write(self.rfile.readline())
 
 class TPServer(wsgiext.ThreadPoolServer, simple_server.WSGIServer):
-    def __init__(self):
-        self._ThreadPoolServer__pre_init(4)
-        super().__init__(('', 0), simple_server.WSGIRequestHandler)
+    pass
 
 def test_ThreadPoolServer():
-    s = TPServer()
-    s.set_app(functools.partial(app, '200 OK'))
-    t = threading.Thread(target=functools.partial(s.serve_forever, poll_interval=0.1), daemon=True)
+    server = TPServer(('', 0), EchoRequestHandler)
+    t = threading.Thread(target=functools.partial(server.serve_forever, poll_interval=0.1), daemon=True)
     t.start()
-    with request.urlopen('http://{}:{}/'.format(*s.server_address)) as r:
-        assert r.read() == b'blah\r\n'
-    s.shutdown()
+    with socket.socket() as s:
+        s.connect(server.server_address)
+        s.send(b'hello there\n')
+        assert s.recv(1024) == b'hello there\n'
+    server.shutdown()
     t.join()
-    s.server_close()
+    server.server_close()
 
 
 def test_InstantShutdownServer():
@@ -43,11 +47,6 @@ def test_InstantShutdownServer():
     s.server_close()
 
 
-class IServer(wsgiext.IPv64Server):
-    def __init__(self, server_address, bind_v6only):
-        self._IPv64Server__pre_init(server_address, bind_v6only)
-        super().__init__(server_address, socketserver.StreamRequestHandler)
-
 @pytest.mark.parametrize('address, v6only, expected_family, expected_v6only', [
     ('0.0.0.0', None,  socket.AddressFamily.AF_INET, None),
     ('0.0.0.0',    0,  socket.AddressFamily.AF_INET, None),
@@ -57,7 +56,7 @@ class IServer(wsgiext.IPv64Server):
     (     '::',    1, socket.AddressFamily.AF_INET6, 1),
 ])
 def test_IPv64Server(address, v6only, expected_family, expected_v6only):
-    s = IServer((address, 0), bind_v6only=v6only)
+    s = wsgiext.IPv64Server((address, 0), socketserver.StreamRequestHandler, bind_v6only=v6only)
     assert s.address_family == expected_family
     try:
         assert s.socket.getsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY) == expected_v6only
