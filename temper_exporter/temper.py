@@ -6,8 +6,8 @@ import pyudev
 cmd_read_temper     = b'\x01\x80\x33\x01\x00\x00\x00\x00'
 cmd_get_calibration = b'\x01\x82\x77\x01\x00\x00\x00\x00'
 cmd_get_version     = b'\x01\x86\xff\x01\x00\x00\x00\x00'
-cmd_stop            = b'\x01\x88\x55\x00\x00\x00\x00\x00' # kills the temperhum if sent - so why bother anyway
-cmd_read_sensor_id  = b'\x01\x89\x55\x00\x00\x00\x00\x00' # temper2 only
+cmd_stop            = b'\x01\x88\x55\x00\x00\x00\x00\x00'
+cmd_read_sensor_id  = b'\x01\x89\x55\x00\x00\x00\x00\x00'
 
 class matcher(type):
     matchers = []
@@ -74,8 +74,9 @@ class usb_temper:
         except Exception:
             raise IOError('Bad response: {}'.format(buf))
 
-    def write(self, data, report_id=b'\x00'):
-        buf = report_id + data
+    def write(self, data):
+        # First byte is report number, or 0 if the device does not use numbered reports
+        buf = b'\x00' + data
         nbytes = self.__device.write(buf)
         if nbytes != len(buf):
             raise IOError('Short write ({}/{})'.format(nbytes, len(buf)))
