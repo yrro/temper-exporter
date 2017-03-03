@@ -67,12 +67,16 @@ class usb_temper:
         assert len(cmd) == 8
         self.write(cmd)
         buf = self.read8()
-        if buf[0] != cmd[1] or buf[1] != struct.calcsize(fmt):
-            raise IOError('Unexpected response: {}'.format(buf))
+        if len(buf) < 2:
+            raise IOError('Very short response: {}'.format(repr(buf)))
+        elif buf[0] != cmd[1]:
+            raise IOError('Bad response cmd: {}'.format(repr(buf)))
+        elif buf[1] != struct.calcsize(fmt):
+            raise IOError('Short response: {}'.format(repr(buf)))
         try:
             return struct.unpack_from(fmt, buf, 2)
-        except Exception:
-            raise IOError('Bad response: {}'.format(buf))
+        except struct.error:
+            raise IOError('Bad response: {}'.format(repr(buf)))
 
     def write(self, data):
         # First byte is report number, or 0 if the device does not use numbered reports
