@@ -1,0 +1,4 @@
+.cache/
+.eggs/
+temper_exporter.egg-info/
+junit.xml
