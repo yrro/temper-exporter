@@ -66,7 +66,10 @@ def test_read_failure():
     d = mock.create_autospec(pyudev.Device)
 
     t = mock.create_autospec(temper.usb_temper)
-    t.read_sensor.side_effect = IOError
+    def simulate_read_failure():
+        raise IOError
+        yield
+    t.read_sensor.side_effect = simulate_read_failure
     t.close.side_effect = IOError
 
     c = Collector()

@@ -24,7 +24,7 @@ class Collector:
             # Copy the dict so we can modify it during iteration
             for device, t in self.__sensors.copy().items():
                 try:
-                    readings = t.read_sensor()
+                    readings = list(t.read_sensor())
                 except IOError:
                     print('Error reading from {}'.format(device), file=sys.stderr)
                     self.__healthy = False
