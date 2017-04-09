@@ -10,6 +10,8 @@ Acknowledgements and thanks to edorfaus's
 [TEMPered](https://github.com/edorfaus/TEMPered) project for the information
 about how to communicate with the supported devices.
 
+<img src="grafana.png" alt="Grafana screenshot" width="480" height="480">
+
 Supported Devices
 -----------------
 
